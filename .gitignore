@@ -4,3 +4,4 @@ venv/
 # Created by shao so that the __pycache__ files are not tracked by git. This is to avoid committing unnecessary files to the repository.
 __pycache__/
 *.pyc
+.env
