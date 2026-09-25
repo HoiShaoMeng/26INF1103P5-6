@@ -16,3 +16,4 @@ This delay leaves staff vulnerable, a real phishing attempt can be sitting in th
 
 
 ### Target users: Small IT teams without a dedicated SOC (e.g. a team of 3-5 IT staff supporting 80-100+ employees) that need help prioritizing which reports to act first. 
+`
