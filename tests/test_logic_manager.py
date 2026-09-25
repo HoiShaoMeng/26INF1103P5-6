@@ -22,9 +22,6 @@ def test_is_ai_unavailable_true_when_classification_matches():
         "classification": "AI_UNAVAILABLE",
         "threat_level": 0,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert is_ai_unavailable(fake_ai_output) is True
 
@@ -34,9 +31,6 @@ def test_is_ai_unavailable_false_for_normal_classification():
         "classification": "phishing",
         "threat_level": 92,
         "tactics_detected": ["executive_impersonation"],
-        "suspicious_urls": ["http://bad-domain.example/login"],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": True,
     }
     assert is_ai_unavailable(fake_ai_output) is False
 
@@ -57,8 +51,6 @@ def test_classify_severity_ai_unavailable_returns_needs_review():
         "classification": "AI_UNAVAILABLE",
         "threat_level": 95,
         "tactics_detected": ["executive_impersonation"],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
         "sender_domain_mismatch": True,
     }
     assert classify_severity(fake_ai_output) == "NEEDS_REVIEW"
@@ -69,9 +61,6 @@ def test_classify_severity_critical_from_threat_level_alone():
         "classification": "phishing",
         "threat_level": 85,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "CRITICAL"
 
@@ -81,9 +70,6 @@ def test_classify_severity_needs_review_from_threat_level_alone():
         "classification": "spam",
         "threat_level": 65,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "NEEDS_REVIEW"
 
@@ -93,9 +79,6 @@ def test_classify_severity_log_only_from_threat_level_alone():
         "classification": "benign",
         "threat_level": 12,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "LOG_ONLY"
 
@@ -111,7 +94,6 @@ def test_classify_severity_rule_a_critical_with_low_threat_level():
         "threat_level": 20,
         "tactics_detected": [],
         "suspicious_urls": ["http://fake-bank-login.example/reset"],
-        "suspicious_attachments": [],
         "sender_domain_mismatch": True,
     }
     assert classify_severity(fake_ai_output) == "CRITICAL"
@@ -122,8 +104,6 @@ def test_classify_severity_rule_a_no_trigger_without_evidence():
         "classification": "phishing",
         "threat_level": 20,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
         "sender_domain_mismatch": True,
     }
     assert classify_severity(fake_ai_output) == "LOG_ONLY"
@@ -135,8 +115,6 @@ def test_classify_severity_rule_a_no_trigger_without_domain_mismatch():
         "threat_level": 20,
         "tactics_detected": [],
         "suspicious_urls": ["http://fake-bank-login.example/reset"],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "LOG_ONLY"
 
@@ -146,9 +124,6 @@ def test_classify_severity_rule_b_escalates_log_only_to_needs_review():
         "classification": "phishing",
         "threat_level": 30,
         "tactics_detected": ["urgency_pressure", "lookalike_domain"],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "NEEDS_REVIEW"
 
@@ -158,9 +133,6 @@ def test_classify_severity_rule_b_escalates_needs_review_to_critical():
         "classification": "phishing",
         "threat_level": 60,
         "tactics_detected": ["urgency_pressure", "lookalike_domain"],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "CRITICAL"
 
@@ -170,9 +142,6 @@ def test_classify_severity_rule_b_stays_critical_when_already_critical():
         "classification": "phishing",
         "threat_level": 90,
         "tactics_detected": ["urgency_pressure", "lookalike_domain"],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "CRITICAL"
 
@@ -182,9 +151,6 @@ def test_classify_severity_rule_b_no_escalation_with_only_one_tactic():
         "classification": "phishing",
         "threat_level": 30,
         "tactics_detected": ["urgency_pressure"],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "LOG_ONLY"
 
@@ -195,7 +161,6 @@ def test_classify_severity_rule_a_and_rule_b_together():
         "threat_level": 20,
         "tactics_detected": ["urgency_pressure", "lookalike_domain"],
         "suspicious_urls": ["http://fake-bank-login.example/reset"],
-        "suspicious_attachments": [],
         "sender_domain_mismatch": True,
     }
     assert classify_severity(fake_ai_output) == "CRITICAL"
@@ -206,9 +171,6 @@ def test_classify_severity_rule_c_campaign_forces_critical():
         "classification": "spam",
         "threat_level": 5,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output, is_campaign=True) == "CRITICAL"
 
@@ -218,9 +180,6 @@ def test_classify_severity_rule_c_defaults_to_false_when_not_passed():
         "classification": "benign",
         "threat_level": 12,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output) == "LOG_ONLY"
 
@@ -230,9 +189,6 @@ def test_classify_severity_fail_safe_still_wins_over_campaign():
         "classification": "AI_UNAVAILABLE",
         "threat_level": 5,
         "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
     }
     assert classify_severity(fake_ai_output, is_campaign=True) == "NEEDS_REVIEW"
 
