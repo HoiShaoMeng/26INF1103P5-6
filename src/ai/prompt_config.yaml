@@ -1,0 +1,26 @@
+model: "dots-studio/dots-3-note-preview:free"
+
+requirements:
+  allowed_classifications: ["phishing", "spear-phishing", "spam", "benign"]
+  
+  threat_level_range: [0, 100]
+
+  tactics_vocabulary:
+    - impersonation
+    - credential_harvesting
+    - urgency_pressure
+    - secrecy_request
+    - financial_request
+    - threat_of_consequence
+
+  output_fields:
+    classification: "string, one of allowed_classifications"
+    threat_level: "integer 0-100"
+    tactics_detected: "list of strings, only from tactics_vocabulary, no duplicates"
+    suspicious_urls: "list of strings, [] if none"
+    suspicious_attachments: "list of strings, [] if none"
+    sender_domain_mismatch: "boolean"
+
+  rules:
+    - "Output JSON only, no text or markdown outside the object"
+    - "Never invent a classification outside the allowed list"

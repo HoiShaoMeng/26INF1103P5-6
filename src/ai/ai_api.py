@@ -1,6 +1,6 @@
 import os
 from openrouter import OpenRouter
-
+import ai_manager
 
 def send_request(input_text="What is a tree in one sentence?"):
   with OpenRouter(
@@ -31,6 +31,9 @@ def send_request(input_text="What is a tree in one sentence?"):
       )
       # print(res.choices[0].message.content)
       print(res)
+      content_str = ai_manager.receive_response(res)
+      print('\n\n')
+      print(content_str)
       return res
 
 send_request()
