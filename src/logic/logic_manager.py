@@ -98,3 +98,16 @@ def classify_severity(ai_output, is_campaign=False):
         severity = _escalate_one_tier(severity)
 
     return severity
+
+def generate_recommended_action(severity):
+    if severity == SEVERITY_CRITICAL:
+        return "Block sender domain and alert all users."
+
+    elif severity == SEVERITY_NEEDS_REVIEW:
+        return "Perform a manual check within 24 hours."
+
+    elif severity == SEVERITY_LOG_ONLY:
+        return "Archive the report. No further action required."
+
+    return "Unknown severity. Manual review required."
+
