@@ -136,3 +136,15 @@ AI_INPUT_FIELDS = ("sender_email", "sender_name", "subject", "body", "urls", "at
 def get_ai_input(record: dict) -> dict:
     """Returns only the fields the AI should see. reported_at is left out so the same email always gives the AI the same input."""
     return {field: record[field] for field in AI_INPUT_FIELDS}
+
+
+def prompt_email_fields() -> dict:
+    """Collects one reported email from the user and returns it as a record."""
+    print("\n=== Report a suspicious email ===")
+    sender_email = prompt_sender_email()
+    sender_name = read_line("Sender display name (optional, press Enter to skip): ")
+    subject = prompt_required("Subject: ", "Subject")
+    body = collect_multiline_body()
+    urls = collect_urls()
+    attachments = collect_attachment_metadata()
+    return build_email_record(sender_email, sender_name, subject, body, urls, attachments)
