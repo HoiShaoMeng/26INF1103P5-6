@@ -52,3 +52,57 @@ def prompt_yes_no(prompt: str) -> bool:
         if answer in ("n", "no"):
             return False
         show_error("Please enter y or n.")
+
+
+def collect_multiline_body() -> str:
+    """Collects body text line by line until the user enters a blank line. Re-prompts if the body is empty."""
+    while True:
+        print("Body text (paste or type; press Enter on a blank line to finish):")
+        lines = []
+        while True:
+            line = input()
+            if line.strip() == "":
+                break
+            lines.append(line.rstrip())
+        body = "\n".join(lines)
+        if is_non_empty(body):
+            return body
+        show_error("Body text is required. Please try again.")
+
+
+def collect_urls() -> list[str]:
+    """Optionally collects one or more URLs. Returns an empty list if none."""
+    urls = []
+    if not prompt_yes_no("Any URLs found in the email?"):
+        return urls
+    print("Enter one URL per line (blank line to finish):")
+    while True:
+        url = read_line("  URL: ")
+        if url == "":
+            break
+        urls.append(url)
+    return urls
+
+
+def split_extension(filename: str) -> str:
+    """Returns the final extension in lowercase, e.g. 'invoice.pdf.exe' -> 'exe'."""
+    if "." not in filename:
+        return ""
+    return filename.rsplit(".", 1)[1].lower()
+
+
+def collect_attachment_metadata() -> list[dict]:
+    """Optionally collects attachment filenames only; contents are never read.
+
+    Returns a list of {"filename": str, "extension": str}, possibly empty.
+    """
+    attachments = []
+    if not prompt_yes_no("Any attachments?"):
+        return attachments
+    print("Enter one attachment filename per line (blank line to finish):")
+    while True:
+        filename = read_line("  Filename: ")
+        if filename == "":
+            break
+        attachments.append({"filename": filename, "extension": split_extension(filename)})
+    return attachments
