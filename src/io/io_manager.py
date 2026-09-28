@@ -1,6 +1,7 @@
 """io_manager: collects and validates reported-email input from the terminal."""
 
 import re
+from datetime import datetime
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -109,3 +110,29 @@ def collect_attachment_metadata() -> list[dict]:
             break
         attachments.append({"filename": filename, "extension": split_extension(filename)})
     return attachments
+
+
+def current_timestamp() -> str:
+    """Returns the current time in ISO format, e.g. '2026-09-28T14:05:00'."""
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def build_email_record(sender_email: str, sender_name: str, subject: str, body: str, urls: list[str], attachments: list[dict]) -> dict:
+    """Packages validated fields into one record for the rest of the pipeline. reported_at is added automatically; logic_manager.check_campaign() needs it."""
+    return {
+        "sender_email": sender_email,
+        "sender_name": sender_name,
+        "subject": subject,
+        "body": body,
+        "urls": urls,
+        "attachments": attachments,
+        "reported_at": current_timestamp(),
+    }
+
+
+AI_INPUT_FIELDS = ("sender_email", "sender_name", "subject", "body", "urls", "attachments")
+
+
+def get_ai_input(record: dict) -> dict:
+    """Returns only the fields the AI should see. reported_at is left out so the same email always gives the AI the same input."""
+    return {field: record[field] for field in AI_INPUT_FIELDS}
