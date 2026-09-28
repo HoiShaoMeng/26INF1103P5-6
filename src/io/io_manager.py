@@ -54,17 +54,20 @@ def prompt_yes_no(prompt: str) -> bool:
         show_error("Please enter y or n.")
 
 
+BODY_END_MARKER = "END"
+
+
 def collect_multiline_body() -> str:
-    """Collects body text line by line until the user enters a blank line. Re-prompts if the body is empty."""
+    """Collects body text line by line until the user types END on its own line. Blank lines inside the email are kept. Re-prompts if the body is empty."""
     while True:
-        print("Body text (paste or type; press Enter on a blank line to finish):")
+        print(f"Body text (paste the email, then type {BODY_END_MARKER} on its own line to finish):")
         lines = []
         while True:
             line = input()
-            if line.strip() == "":
+            if line.strip().upper() == BODY_END_MARKER:
                 break
             lines.append(line.rstrip())
-        body = "\n".join(lines)
+        body = "\n".join(lines).strip()
         if is_non_empty(body):
             return body
         show_error("Body text is required. Please try again.")
