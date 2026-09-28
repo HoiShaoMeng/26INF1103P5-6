@@ -52,3 +52,19 @@ def prompt_yes_no(prompt: str) -> bool:
         if answer in ("n", "no"):
             return False
         show_error("Please enter y or n.")
+
+
+def collect_multiline_body() -> str:
+    """Collects body text line by line until the user enters a blank line. Re-prompts if the body is empty."""
+    while True:
+        print("Body text (paste or type; press Enter on a blank line to finish):")
+        lines = []
+        while True:
+            line = input()
+            if line.strip() == "":
+                break
+            lines.append(line.rstrip())
+        body = "\n".join(lines)
+        if is_non_empty(body):
+            return body
+        show_error("Body text is required. Please try again.")
