@@ -148,3 +148,22 @@ def prompt_email_fields() -> dict:
     urls = collect_urls()
     attachments = collect_attachment_metadata()
     return build_email_record(sender_email, sender_name, subject, body, urls, attachments)
+
+
+def display_record_summary(record: dict) -> None:
+    """Prints a short summary of a captured record so the user can confirm it."""
+    print("\n--- Captured report ---")
+    print(f"Sender:      {record['sender_name'] or '(no display name)'} <{record['sender_email']}>")
+    print(f"Subject:     {record['subject']}")
+    print(f"Body:        {len(record['body'].splitlines())} line(s)")
+    print(f"URLs:        {', '.join(record['urls']) or 'none'}")
+    names = [attachment["filename"] for attachment in record["attachments"]]
+    print(f"Attachments: {', '.join(names) or 'none'}")
+    print(f"Reported at: {record['reported_at']}")
+
+
+if __name__ == "__main__":
+    # Manual test harness: python src/io/io_manager.py
+    test_record = prompt_email_fields()
+    display_record_summary(test_record)
+    print("\nAI will receive:", list(get_ai_input(test_record).keys()))
