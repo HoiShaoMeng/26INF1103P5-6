@@ -1,6 +1,7 @@
 """io_manager: collects and validates reported-email input from the terminal."""
 
 import re
+from datetime import datetime
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -109,3 +110,60 @@ def collect_attachment_metadata() -> list[dict]:
             break
         attachments.append({"filename": filename, "extension": split_extension(filename)})
     return attachments
+
+
+def current_timestamp() -> str:
+    """Returns the current time in ISO format, e.g. '2026-09-28T14:05:00'."""
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def build_email_record(sender_email: str, sender_name: str, subject: str, body: str, urls: list[str], attachments: list[dict]) -> dict:
+    """Packages validated fields into one record for the rest of the pipeline. reported_at is added automatically; logic_manager.check_campaign() needs it."""
+    return {
+        "sender_email": sender_email,
+        "sender_name": sender_name,
+        "subject": subject,
+        "body": body,
+        "urls": urls,
+        "attachments": attachments,
+        "reported_at": current_timestamp(),
+    }
+
+
+AI_INPUT_FIELDS = ("sender_email", "sender_name", "subject", "body", "urls", "attachments")
+
+
+def get_ai_input(record: dict) -> dict:
+    """Returns only the fields the AI should see. reported_at is left out so the same email always gives the AI the same input."""
+    return {field: record[field] for field in AI_INPUT_FIELDS}
+
+
+def prompt_email_fields() -> dict:
+    """Collects one reported email from the user and returns it as a record."""
+    print("\n=== Report a suspicious email ===")
+    sender_email = prompt_sender_email()
+    sender_name = read_line("Sender display name (optional, press Enter to skip): ")
+    subject = prompt_required("Subject: ", "Subject")
+    body = collect_multiline_body()
+    urls = collect_urls()
+    attachments = collect_attachment_metadata()
+    return build_email_record(sender_email, sender_name, subject, body, urls, attachments)
+
+
+def display_record_summary(record: dict) -> None:
+    """Prints a short summary of a captured record so the user can confirm it."""
+    print("\n--- Captured report ---")
+    print(f"Sender:      {record['sender_name'] or '(no display name)'} <{record['sender_email']}>")
+    print(f"Subject:     {record['subject']}")
+    print(f"Body:        {len(record['body'].splitlines())} line(s)")
+    print(f"URLs:        {', '.join(record['urls']) or 'none'}")
+    names = [attachment["filename"] for attachment in record["attachments"]]
+    print(f"Attachments: {', '.join(names) or 'none'}")
+    print(f"Reported at: {record['reported_at']}")
+
+
+if __name__ == "__main__":
+    # Manual test harness: python src/io/io_manager.py
+    test_record = prompt_email_fields()
+    display_record_summary(test_record)
+    print("\nAI will receive:", list(get_ai_input(test_record).keys()))
