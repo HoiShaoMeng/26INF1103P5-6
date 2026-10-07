@@ -115,15 +115,26 @@ def classify_severity(ai_output, is_campaign=False):
 
     return severity
 
+# Generates the recommended action based on the final severity level.
+# Each severity has a fixed action so the IT team knows what to do next.
 def generate_recommended_action(severity):
+    
+    # CRITICAL threats require immediate action:
+    # block the sender domain and warn all users.
     if severity == SEVERITY_CRITICAL:
         return "Block sender domain and alert all users."
 
+    # NEEDS_REVIEW threats are suspicious but not urgent enough to block immediately,
+    # so the IT team should manually review them within 24 hours.
     elif severity == SEVERITY_NEEDS_REVIEW:
         return "Perform a manual check within 24 hours."
 
+    # LOG_ONLY reports are low-risk, so they are archived
+    # and no immediate action is required.
     elif severity == SEVERITY_LOG_ONLY:
         return "Archive the report. No further action required."
 
+    # Fallback for any unexpected severity value:
+    # send it for manual review instead of taking an unsafe automatic action.
     return "Unknown severity. Manual review required."
 
