@@ -13,26 +13,42 @@ def is_ai_unavailable(ai_output):
 #each report dict needs "sender_email" and "reported_at" (ISO format, e.g. 2026-09-25T14:00:00).
 #the current report counts as 1, so 2 matching previous reports are needed to reach 3.
 def check_campaign(current_report, previous_reports):
-    current_sender = current_report["sender_email"]
+    # Get the current sender email and normalise it by removing extra spaces and converting it to lowercase. 
+    #Example: ATTACKER@fake.com and attacker@fake.com may otherwise be treated as different strings.
+    current_sender = current_report["sender_email"].strip().lower()
     current_domain = current_sender.split("@")[1]
     current_time = datetime.fromisoformat(current_report["reported_at"])
 
+    # Start at 1 because the current report itself counts as one report.
     match_count = 1
 
+    # Compare the current report against all previous reports.
     for report in previous_reports:
-        previous_sender = report["sender_email"]
+
+        # Extract the previous report's sender, domain and time.
+        # .strip().lower() ensures the comparison is not affected by spaces or capital letters.
+        previous_sender = report["sender_email"].strip().lower()
         previous_domain = previous_sender.split("@")[1]
         previous_time = datetime.fromisoformat(report["reported_at"])
 
-        if previous_sender == current_sender or previous_domain == current_domain:
+        # Check whether the exact sender email or the sender domain matches.
+        same_sender = previous_sender == current_sender
+        same_domain = previous_domain == current_domain
+
+        if same_sender or same_domain:
+
+            # Calculate how much earlier the previous report was submitted.
             time_difference = current_time - previous_time
 
+            # Only count reports that happened within the previous 24 hours.
+            # timedelta(0) also prevents future reports from being counted.
             if timedelta(0) <= time_difference <= timedelta(hours=24):
                 match_count += 1
 
-    if match_count >= 3:
-        return True
-
+                # Stop checking once 3 related reports are found.
+                if match_count >= 3:
+                    return True
+    # If fewer than 3 related reports were found, no campaign is detected. 
     return False
 
 #threat_level band boundaries, this is the PRIMARY driver of severity, tactics never gate these bands
