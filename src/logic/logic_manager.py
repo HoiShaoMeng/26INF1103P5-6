@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 
-#Fail safe check: True if ai_manager cant get a real AI response and returned the AI_UNAVAILABLE placeholder instead.
+#fail safe check: True if ai_manager cant get a real AI response and returned the AI_UNAVAILABLE placeholder instead.
 #classify_severity() must run this first so a failed AI call never gets mistaken for a "safe" email.
+#FIRST area to coordinate with AI team, make sure that AI is made to return AI_UNAVAILABLE if it fails to classify a report. 
 def is_ai_unavailable(ai_output):
 
     if not isinstance(ai_output, dict):
@@ -63,10 +64,11 @@ SEVERITY_CRITICAL = "CRITICAL"
 SEVERITY_NEEDS_REVIEW = "NEEDS_REVIEW"
 SEVERITY_LOG_ONLY = "LOG_ONLY"
 
-#lets us bump a severity up by exactly one tier without a big if/elif chain
+#just a list (index: 0, 1, 2) to let us bump a severity up by exactly one tier without a big if/elif chain
 SEVERITY_ESCALATION_ORDER = [SEVERITY_LOG_ONLY, SEVERITY_NEEDS_REVIEW, SEVERITY_CRITICAL]
 
 #bumps a severity one step up the scale, already-CRITICAL stays CRITICAL, doesnt go out of bounds
+#finds the position of the current severity in the list. E.g. "NEEDS_REVIEW" is at index 1.
 def _escalate_one_tier(severity):
     current_index = SEVERITY_ESCALATION_ORDER.index(severity)
     next_index = min(current_index + 1, len(SEVERITY_ESCALATION_ORDER) - 1)
@@ -78,14 +80,16 @@ def _escalate_one_tier(severity):
 def classify_severity(ai_output, is_campaign=False):
 
     #fail-safe, always checked first, so a failed AI call never gets treated as safe
+    #if the ai manager failed to get a real response, we will flag it NEEDS_REVIEW as we do not want to auto-approve a report that the AI could not classify.
     if is_ai_unavailable(ai_output):
         return SEVERITY_NEEDS_REVIEW
 
-    #rule C: a detected campaign (3+ reports from the same sender/domain within 24h) is CRITICAL outright,
-    #regardless of threat_level, tactics, or anything else, per check_campaign()'s contract
+    #rule C: a detected campaign (3+ reports from the same sender/domain within 24h) is CRITICAL outright, regardless of threat_level, tactics, or anything else, per check_campaign()'s contract
+    #we will immediately flag the report as CRITICAL if check_campaign() returned True
     if is_campaign:
         return SEVERITY_CRITICAL
 
+    #pull out relavent fields from the AI output, using .get() to avoid keyerror if a field is missing
     tactics_detected = ai_output.get("tactics_detected") or []
     suspicious_urls = ai_output.get("suspicious_urls") or []
     suspicious_attachments = ai_output.get("suspicious_attachments") or []
@@ -101,7 +105,8 @@ def classify_severity(ai_output, is_campaign=False):
     if sender_domain_mismatch and has_suspicious_evidence:
         return SEVERITY_CRITICAL
 
-    #base severity comes from threat_level alone, this is the primary signal
+    #checks threat_level against the thresholds, and sets severity accordingly. 
+    #This is severity is determined by the AI's threat_level alone, without any other signals. The other rules can escalate it  if needed.
     if threat_level >= THREAT_LEVEL_CRITICAL_THRESHOLD:
         severity = SEVERITY_CRITICAL
     elif threat_level >= THREAT_LEVEL_NEEDS_REVIEW_MIN:
