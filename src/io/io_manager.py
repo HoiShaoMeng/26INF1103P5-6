@@ -162,6 +162,32 @@ def display_record_summary(record: dict) -> None:
     print(f"Reported at: {record['reported_at']}")
 
 
+# --- Output format ---
+RESULT_WIDTH = 50
+LABEL_WIDTH = 18
+
+SEVERITY_LABELS = {
+    "CRITICAL": "[!!!] CRITICAL",
+    "NEEDS_REVIEW": "[!!] NEEDS REVIEW",
+    "LOG_ONLY": "[i] LOG ONLY",
+}
+
+
+def format_divider(char: str = "-") -> str:
+    """Returns a full-width divider line, e.g. '-----...'."""
+    return char * RESULT_WIDTH
+
+
+def format_field(label: str, value: str) -> str:
+    """Returns one aligned 'Label:  value' line."""
+    return f"{label + ':':<{LABEL_WIDTH}}{value}"
+
+
+def format_severity(severity: str) -> str:
+    """Returns the display label for a severity, e.g. 'CRITICAL' -> '[!!!] CRITICAL'."""
+    return SEVERITY_LABELS.get(severity, f"[?] {severity}")
+
+
 if __name__ == "__main__":
     # Manual test harness: python src/io/io_manager.py
     test_record = prompt_email_fields()
