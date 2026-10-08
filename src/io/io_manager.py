@@ -188,6 +188,28 @@ def format_severity(severity: str) -> str:
     return SEVERITY_LABELS.get(severity, f"[?] {severity}")
 
 
+def format_list(items: list[str] | None) -> str:
+    """Joins a list into 'a, b, c', or returns 'none' if it is empty or missing."""
+    return ", ".join(items or []) or "none"
+
+
+def format_yes_no(value: bool) -> str:
+    """Returns 'YES' for True and 'no' for False, so warnings stand out."""
+    return "YES" if value else "no"
+
+
+def format_threat_level(level: int | float | None) -> str:
+    """Returns e.g. '92/100', or 'unknown' if the AI gave no usable number."""
+    if isinstance(level, bool) or not isinstance(level, (int, float)):
+        return "unknown"
+    return f"{int(level)}/100"
+
+
+def format_tactics(tactics: list[str] | None) -> str:
+    """Turns ['urgency_pressure', ...] into 'urgency pressure, ...'."""
+    return format_list([tactic.replace("_", " ") for tactic in tactics or []])
+
+
 if __name__ == "__main__":
     # Manual test harness: python src/io/io_manager.py
     test_record = prompt_email_fields()
