@@ -1,6 +1,6 @@
 import json
+import os
 from pathlib import Path
-
 
 def read_file():
     #Locate reports.json relative to this python file,
@@ -95,7 +95,18 @@ def write_file(reports: list) -> bool:
         #only once the temp file is complete, swap it in as the real file
         os.replace(temp_path, file_path)
         return True
-    
+
+    except (OSError, TypeError, ValueError):
+        #OSError: no permission, disk full, folder cant be created. TypeError/ValueError: data cant be turned into JSON
+        #remove the half written temp file, the old reports.json is left untouched
+        try:
+            if temp_path.exists():
+                temp_path.unlink()
+        except OSError:
+            pass
+
+        return False
+
 if __name__ == "__main__":
     # Run this test only when this file is executed directly.
     print(read_file())
