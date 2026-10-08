@@ -30,6 +30,45 @@ def read_file():
         print("Invalid JSON format in reports file.")
         return []
 
+#builds the one flat record that gets saved to reports.json, it only arranges data and never decides anything.
+#sender_email and reported_at stay at the top level because check_campaign() reads them from the saved reports.
+#returns an empty dict if the record is missing either of them, so a report that campaign detection cant use is never saved.
+def format_report(record: dict, ai_output: dict, is_campaign: bool, severity: str, recommended_action: str) -> dict:
+
+    if not isinstance(record, dict):
+        return {}
+
+    if "sender_email" not in record or "reported_at" not in record:
+        return {}
+
+    #ai_output is not a dict if the AI failed, so fall back to an empty dict instead of crashing
+    if not isinstance(ai_output, dict):
+        ai_output = {}
+
+    return {
+        #fields from io_manager
+        "sender_email": record["sender_email"],
+        "sender_name": record.get("sender_name", ""),
+        "subject": record.get("subject", ""),
+        "body": record.get("body", ""),
+        "urls": record.get("urls") or [],
+        "attachments": record.get("attachments") or [],
+        "reported_at": record["reported_at"],
+
+        #fields from ai_manager
+        "classification": ai_output.get("classification"),
+        "threat_level": ai_output.get("threat_level"),
+        "tactics_detected": ai_output.get("tactics_detected") or [],
+        "suspicious_urls": ai_output.get("suspicious_urls") or [],
+        "suspicious_attachments": ai_output.get("suspicious_attachments") or [],
+        "sender_domain_mismatch": ai_output.get("sender_domain_mismatch"),
+
+        #fields from logic_manager
+        "is_campaign": is_campaign,
+        "severity": severity,
+        "recommended_action": recommended_action,
+    }
+
 
 if __name__ == "__main__":
     # Run this test only when this file is executed directly.
