@@ -261,6 +261,21 @@ def display_screening_result(record: dict, ai_result: dict | None, severity: str
     for line in build_result_lines(record, ai_result, severity, action, is_campaign):
         print(line)
 
+
+# --- Error messages ---
+def format_error_message(source: str, problem: str, next_step: str = "") -> str:
+    """Returns one error line, e.g. '  [!] AI error: request timed out. Perform a manual check within 24 hours.'"""
+    message = f"  [!] {source} error: {problem.rstrip('.')}."
+    if next_step:
+        message += f" {next_step}"
+    return message
+
+
+def display_error(source: str, problem: str, next_step: str = "") -> None:
+    """Prints an error from any layer; the caller supplies the problem and what happens next."""
+    print(format_error_message(source, problem, next_step))
+
+
 if __name__ == "__main__":
     # Manual test harness: python src/io/io_manager.py
     test_record = prompt_email_fields()
