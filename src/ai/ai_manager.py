@@ -154,8 +154,8 @@ def build_user_prompt(email_data=SAMPLE_EMAILS["spear_phishing_ceo"]):
         f"Sender name: {email_data['sender_name']}\n"
         f"Subject: {email_data['subject']}\n"
         f"Body: {email_data['body']}\n"
-        f"URLs: {', '.join(a["filename"] for a in email_data.get("attachments", []))}\n"
-        f"Attachments: {', '.join(email_data.get('attachments', [])) or 'none'}"
+        f"URLs: {', '.join(email_data.get('urls', [])) or 'none'}\n"
+        f"Attachments: {', '.join(a["filename"] for a in email_data.get("attachments", []))}"
     )
 
 
