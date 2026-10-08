@@ -69,7 +69,33 @@ def format_report(record: dict, ai_output: dict, is_campaign: bool, severity: st
         "recommended_action": recommended_action,
     }
 
+#saves the whole report history to data/reports.json, the same file read_file() reads.
+#order in the pipeline: read_file() -> add the new report to the list -> write_file(list)
+#returns True when the file was written, False when it failed (no print here, io_manager shows the message).
+def write_file(reports: list) -> bool:
+    #read_file() only accepts a list, so never write anything else
+    if not isinstance(reports, list):
+        return False
 
+    #locate reports.json the same way read_file() does
+    current_file = Path(__file__)
+    project_dir = current_file.parent.parent.parent
+    file_path = project_dir / "data" / "reports.json"
+    temp_path = project_dir / "data" / "reports.json.tmp"
+
+    try:
+        #make sure the data folder exists
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        #write to a temp file first, so a crash half way never damages the real history
+        with open(temp_path, "w", encoding="utf-8") as file:
+            json.dump(reports, file, indent=2, ensure_ascii=False)
+            file.write("")
+
+        #only once the temp file is complete, swap it in as the real file
+        os.replace(temp_path, file_path)
+        return True
+    
 if __name__ == "__main__":
     # Run this test only when this file is executed directly.
     print(read_file())
