@@ -254,6 +254,13 @@ def build_result_lines(record: dict, ai_result: dict | None, severity: str,
     return lines
 
 
+def display_screening_result(record: dict, ai_result: dict | None, severity: str,
+                             action: str, is_campaign: bool = False) -> None:
+    """Prints the full screening result for one reported email."""
+    print()
+    for line in build_result_lines(record, ai_result, severity, action, is_campaign):
+        print(line)
+
 if __name__ == "__main__":
     # Manual test harness: python src/io/io_manager.py
     test_record = prompt_email_fields()
