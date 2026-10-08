@@ -261,6 +261,24 @@ def display_screening_result(record: dict, ai_result: dict | None, severity: str
     for line in build_result_lines(record, ai_result, severity, action, is_campaign):
         print(line)
 
+
+# --- Error messages ---
+AI_ERROR_NEXT_STEP = "The report will be marked for manual review."
+
+FILE_ERROR_NEXT_STEPS = {
+    "read": "Continuing with no saved report history.",
+    "write": "This report was not saved.",
+}
+
+
+def format_error_message(source: str, problem: str, next_step: str = "") -> str:
+    """Returns one error line, e.g. '  [!] AI error: request timed out. Report marked for manual review.'"""
+    message = f"  [!] {source} error: {problem.rstrip('.')}."
+    if next_step:
+        message += f" {next_step}"
+    return message
+
+
 if __name__ == "__main__":
     # Manual test harness: python src/io/io_manager.py
     test_record = prompt_email_fields()
