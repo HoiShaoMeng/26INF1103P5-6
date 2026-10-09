@@ -16,7 +16,8 @@ if __name__ == "__main__":
     report_dict = io_manager.prompt_email_fields()
     
     system_prompt = ai_manager.build_system_prompt(ai_manager.load_prompt_config())
-    user_prompt = ai_manager.build_user_prompt(report_dict)
+    ai_input = io_manager.get_ai_input(report_dict)
+    user_prompt = ai_manager.build_user_prompt(ai_input)
     response_dict = dict()
     status = False
     while not response_dict:
