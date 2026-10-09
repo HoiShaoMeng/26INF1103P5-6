@@ -163,53 +163,6 @@ def display_record_summary(record: dict) -> None:
 
 
 # --- Output format ---
-RESULT_WIDTH = 50
-LABEL_WIDTH = 18
-
-SEVERITY_LABELS = {
-    "CRITICAL": "[!!!] CRITICAL",
-    "NEEDS_REVIEW": "[!!] NEEDS REVIEW",
-    "LOG_ONLY": "[i] LOG ONLY",
-}
-
-
-def format_divider(char: str = "-") -> str:
-    """Returns a full-width divider line, e.g. '-----...'."""
-    return char * RESULT_WIDTH
-
-
-def format_field(label: str, value: str) -> str:
-    """Returns one aligned 'Label:  value' line."""
-    return f"{label + ':':<{LABEL_WIDTH}}{value}"
-
-
-def format_severity(severity: str) -> str:
-    """Returns the display label for a severity, e.g. 'CRITICAL' -> '[!!!] CRITICAL'."""
-    return SEVERITY_LABELS.get(severity, f"[?] {severity}")
-
-
-def format_list(items: list[str] | None) -> str:
-    """Joins a list into 'a, b, c', or returns 'none' if it is empty or missing."""
-    return ", ".join(items or []) or "none"
-
-
-def format_yes_no(value: bool) -> str:
-    """Returns 'YES' for True and 'no' for False, so warnings stand out."""
-    return "YES" if value else "no"
-
-
-def format_threat_level(level: int | float | None) -> str:
-    """Returns e.g. '92/100', or 'unknown' if the AI gave no usable number."""
-    if isinstance(level, bool) or not isinstance(level, (int, float)):
-        return "unknown"
-    return f"{int(level)}/100"
-
-
-def format_tactics(tactics: list[str] | None) -> str:
-    """Turns ['urgency_pressure', ...] into 'urgency pressure, ...'."""
-    return format_list([tactic.replace("_", " ") for tactic in tactics or []])
-
-
 def format_label(key: str) -> str:
     """Turns a data key into a label, e.g. 'threat_level' -> 'Threat level'."""
     return key.replace("_", " ").capitalize()
@@ -234,14 +187,6 @@ def format_section(fields: list[tuple[str, object]], label_width: int) -> list[s
 
 
 # --- Display results ---
-AI_UNAVAILABLE = "AI_UNAVAILABLE"
-
-
-def is_ai_result_usable(ai_result: dict | None) -> bool:
-    """Returns False if the AI failed (None) or returned the AI_UNAVAILABLE placeholder."""
-    return isinstance(ai_result, dict) and ai_result.get("classification") != AI_UNAVAILABLE
-
-
 def build_result_lines(record: dict, ai_result: dict | None, severity: str,
                        action: str, is_campaign: bool = False) -> list[str]:
     """Builds the screening result from the record, whatever fields the AI returned, and logic's decision."""
