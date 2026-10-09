@@ -19,5 +19,3 @@ def send_request(system=system_prompt, user=user_prompt):
             stream=False,
         )
     return res
-
-send_request()
