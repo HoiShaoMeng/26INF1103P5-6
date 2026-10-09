@@ -82,22 +82,19 @@ def get_input_error(field: str, value: str) -> str | None:
     return None
 
 
-def prompt_required(prompt: str, field_name: str) -> str:
-    """Re-prompts until the user enters a non-empty value."""
+def prompt_field(prompt: str, field: str) -> str:
+    """Re-prompts until the value passes the field's rule in INPUT_RULES."""
     while True:
         value = read_line(prompt)
-        if is_non_empty(value):
+        error = get_input_error(field, value)
+        if error is None:
             return value
-        show_error(f"{field_name} is required. Please try again.")
+        show_error(error)
 
 
 def prompt_sender_email() -> str:
-    """Re-prompts until the user enters a well-formed sender email address."""
-    while True:
-        value = prompt_required("Sender email: ", "Sender email")
-        if is_valid_email(value):
-            return value.lower()
-        show_error("That does not look like an email address (e.g. name@domain.com).")
+    """Re-prompts until the user enters a valid sender email address."""
+    return prompt_field("Sender email: ", "sender_email").lower()
 
 
 def prompt_yes_no(prompt: str) -> bool:
@@ -125,9 +122,10 @@ def collect_multiline_body() -> str:
                 break
             lines.append(line.rstrip())
         body = "\n".join(lines).strip()
-        if is_non_empty(body):
+        error = get_input_error("body", body)
+        if error is None:
             return body
-        show_error("Body text is required. Please try again.")
+        show_error(error)
 
 
 def collect_urls() -> list[str]:
@@ -140,6 +138,10 @@ def collect_urls() -> list[str]:
         url = read_line("  URL: ")
         if url == "":
             break
+        error = get_input_error("urls", url)
+        if error:
+            show_error(error)
+            continue
         urls.append(url)
     return urls
 
@@ -164,6 +166,10 @@ def collect_attachment_metadata() -> list[dict]:
         filename = read_line("  Filename: ")
         if filename == "":
             break
+        error = get_input_error("attachments", filename)
+        if error:
+            show_error(error)
+            continue
         attachments.append({"filename": filename, "extension": split_extension(filename)})
     return attachments
 
@@ -198,8 +204,8 @@ def prompt_email_fields() -> dict:
     """Collects one reported email from the user and returns it as a record."""
     print("\n=== Report a suspicious email ===")
     sender_email = prompt_sender_email()
-    sender_name = read_line("Sender display name (optional, press Enter to skip): ")
-    subject = prompt_required("Subject: ", "Subject")
+    sender_name = prompt_field("Sender display name (optional, press Enter to skip): ", "sender_name")
+    subject = prompt_field("Subject: ", "subject")
     body = collect_multiline_body()
     urls = collect_urls()
     attachments = collect_attachment_metadata()
