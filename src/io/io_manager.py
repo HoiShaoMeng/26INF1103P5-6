@@ -244,36 +244,32 @@ def is_ai_result_usable(ai_result: dict | None) -> bool:
 
 def build_result_lines(record: dict, ai_result: dict | None, severity: str,
                        action: str, is_campaign: bool = False) -> list[str]:
-    """Builds the screening result as a list of display lines (no printing)."""
-    sender = f"{record['sender_name'] or '(no display name)'} <{record['sender_email']}>"
-    lines = [
-        format_divider("="),
-        " SCREENING RESULT",
-        format_divider("="),
-        format_field("Sender", sender),
-        format_field("Subject", record["subject"]),
-        format_divider(),
+    """Builds the screening result from the record, whatever fields the AI returned, and logic's decision."""
+    ai_fields = list(ai_result.items()) if isinstance(ai_result, dict) and ai_result else [("ai_result", None)]
+    sections = [
+        [
+            ("sender", f"{record['sender_name']} <{record['sender_email']}>".strip()),
+            ("subject", record["subject"]),
+            ("reported_at", record["reported_at"]),
+        ],
+        ai_fields,
+        [
+            ("campaign", is_campaign),
+            ("severity", severity),
+            ("recommended_action", action),
+        ],
     ]
 
-    if is_ai_result_usable(ai_result):
-        lines += [
-            format_field("Classification", str(ai_result.get("classification", "unknown"))),
-            format_field("Threat level", format_threat_level(ai_result.get("threat_level"))),
-            format_field("Tactics", format_tactics(ai_result.get("tactics_detected"))),
-            format_field("Suspicious URLs", format_list(ai_result.get("suspicious_urls"))),
-            format_field("Suspicious files", format_list(ai_result.get("suspicious_attachments"))),
-            format_field("Domain mismatch", format_yes_no(bool(ai_result.get("sender_domain_mismatch")))),
-        ]
-    else:
-        lines.append(format_field("AI assessment", "unavailable - needs manual review"))
+    label_width = max(len(format_label(key)) for section in sections for key, _ in section) + 2
+    blocks = [format_section(section, label_width) for section in sections]
+    width = max(len(line) for block in blocks for line in block)
 
-    lines += [
-        format_field("Campaign", format_yes_no(is_campaign)),
-        format_divider(),
-        format_field("Severity", format_severity(severity)),
-        format_field("Action", action),
-        format_divider("="),
-    ]
+    lines = ["=" * width, "SCREENING RESULT", "=" * width]
+    for index, block in enumerate(blocks):
+        if index > 0:
+            lines.append("-" * width)
+        lines += block
+    lines.append("=" * width)
     return lines
 
 
