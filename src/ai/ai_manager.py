@@ -1,6 +1,7 @@
 import json
 import os
 import yaml
+from openrouter import OpenRouter
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "prompt_config.yaml")
 
@@ -196,3 +197,17 @@ def receive_response(api_response):
         print(f"Unexpected API response structure: {api_response}")
         return None
 
+system_prompt = build_system_prompt(load_prompt_config())
+user_prompt = build_user_prompt()
+def send_request(system=system_prompt, user=user_prompt):
+    with OpenRouter(
+        api_key=os.getenv("OPENROUTER_API_KEY", ""),
+    ) as open_router:
+        res = open_router.chat.send(
+            model= "dots-studio/dots-3-note-preview:free",
+            messages=[
+                {"role": "user", "content": system}, {"role": "user", "content": user}
+            ],
+            stream=False,
+        )
+    return res
