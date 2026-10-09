@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -51,6 +52,34 @@ def is_non_empty(value: str) -> bool:
 def is_valid_email(value: str) -> bool:
     """Returns True if the value looks like name@domain.tld."""
     return EMAIL_PATTERN.match(value) is not None
+
+
+def is_valid_url(value: str) -> bool:
+    """Returns True if the value is an http/https link with a domain."""
+    parts = urlparse(value)
+    return parts.scheme in ("http", "https") and parts.netloc != ""
+
+
+def is_valid_filename(value: str) -> bool:
+    """Returns True if the value is a plain filename, not empty and not a folder path."""
+    name = value.strip()
+    return name not in ("", ".", "..") and "/" not in name and "\\" not in name
+
+
+FORMAT_CHECKS = {"email": is_valid_email, "url": is_valid_url, "filename": is_valid_filename}
+
+
+def get_input_error(field: str, value: str) -> str | None:
+    """Checks a value against its rule in INPUT_RULES; returns an error message, or None if valid."""
+    rule = INPUT_RULES[field]
+    if not is_non_empty(value):
+        return f"{rule['label']} is required." if rule["required"] else None
+    if len(value) > rule["max_length"]:
+        return f"{rule['label']} is too long (max {rule['max_length']} characters)."
+    check = FORMAT_CHECKS.get(rule.get("format"))
+    if check and not check(value):
+        return f"Invalid {rule['label'].lower()}: {rule['hint']}."
+    return None
 
 
 def prompt_required(prompt: str, field_name: str) -> str:
