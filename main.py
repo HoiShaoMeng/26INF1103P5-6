@@ -13,6 +13,9 @@ import data_manager
 
 
 if __name__ == "__main__":
+    io_manager.prompt_email_fields()
+    
+
     system_prompt = ai_manager.build_system_prompt(ai_manager.load_prompt_config())
     user_prompt = ai_manager.build_user_prompt()
     res =ai_manager.send_request(system_prompt, user_prompt)
