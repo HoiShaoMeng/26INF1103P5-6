@@ -364,9 +364,6 @@ def receive_response(api_response):
         print(f"Unexpected API response structure: {api_response}")
         return None
 
-# system_prompt = build_system_prompt(load_prompt_config())
-# user_prompt = build_user_prompt()
-
 def send_request(system, user):
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
@@ -380,4 +377,12 @@ def send_request(system, user):
         )
     return res
 
-
+def ai_workflow(system_prompt, user_prompt, response_dict):
+    response = send_request(system_prompt, user_prompt)
+    response_content = receive_response(response)
+    response_dict = parse_response_content(response_content)
+    if validate_schema(response_dict, load_prompt_config()):
+        
+        return response_dict
+    else:
+        return False

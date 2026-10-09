@@ -13,10 +13,13 @@ import data_manager
 
 
 if __name__ == "__main__":
-    io_manager.prompt_email_fields()
+    report_dict = io_manager.prompt_email_fields()
     
-
     system_prompt = ai_manager.build_system_prompt(ai_manager.load_prompt_config())
-    user_prompt = ai_manager.build_user_prompt()
-    res =ai_manager.send_request(system_prompt, user_prompt)
-    print(ai_manager.receive_response(res))
+    user_prompt = ai_manager.build_user_prompt(report_dict)
+    response_dict = dict()
+    status = False
+    while not response_dict:
+        response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, response_dict)
+
+    print(response_dict)
