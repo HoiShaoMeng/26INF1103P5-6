@@ -199,6 +199,7 @@ def receive_response(api_response):
 
 system_prompt = build_system_prompt(load_prompt_config())
 user_prompt = build_user_prompt()
+
 def send_request(system=system_prompt, user=user_prompt):
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
@@ -206,8 +207,10 @@ def send_request(system=system_prompt, user=user_prompt):
         res = open_router.chat.send(
             model= "dots-studio/dots-3-note-preview:free",
             messages=[
-                {"role": "user", "content": system}, {"role": "user", "content": user}
+                {"role": "system", "content": system}, {"role": "user", "content": user}
             ],
             stream=False,
         )
     return res
+
+print(receive_response(send_request()))
