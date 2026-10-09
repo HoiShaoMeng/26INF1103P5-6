@@ -35,7 +35,10 @@ SAMPLE_EMAILS = {
             "Regards,\nAccounts Payable"
         ),
         "urls": [],
-        "attachments": ["INV-20931.pdf.exe", "payment_details.docm"],
+        "attachments": [
+            {"filename": "INV-20931.pdf.exe", "extension": "exe"},
+            {"filename": "payment_details.docm", "extension": "docm"},
+        ],
     },
 
     # Expected: phishing, threat_level 50-75 (IT impersonation, softer tone)
@@ -94,7 +97,9 @@ SAMPLE_EMAILS = {
             "Mei Lin"
         ),
         "urls": [],
-        "attachments": ["meeting_notes_2026-09-28.pdf"],
+        "attachments": [
+            {"filename": "meeting_notes_2026-09-28.pdf", "extension": "pdf"},
+        ],
     },
 }
 
