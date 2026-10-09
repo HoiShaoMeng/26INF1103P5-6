@@ -163,94 +163,58 @@ def display_record_summary(record: dict) -> None:
 
 
 # --- Output format ---
-RESULT_WIDTH = 50
-LABEL_WIDTH = 18
-
-SEVERITY_LABELS = {
-    "CRITICAL": "[!!!] CRITICAL",
-    "NEEDS_REVIEW": "[!!] NEEDS REVIEW",
-    "LOG_ONLY": "[i] LOG ONLY",
-}
+def format_label(key: str) -> str:
+    """Turns a data key into a label, e.g. 'threat_level' -> 'Threat level'."""
+    return key.replace("_", " ").capitalize()
 
 
-def format_divider(char: str = "-") -> str:
-    """Returns a full-width divider line, e.g. '-----...'."""
-    return char * RESULT_WIDTH
-
-
-def format_field(label: str, value: str) -> str:
-    """Returns one aligned 'Label:  value' line."""
-    return f"{label + ':':<{LABEL_WIDTH}}{value}"
-
-
-def format_severity(severity: str) -> str:
-    """Returns the display label for a severity, e.g. 'CRITICAL' -> '[!!!] CRITICAL'."""
-    return SEVERITY_LABELS.get(severity, f"[?] {severity}")
-
-
-def format_list(items: list[str] | None) -> str:
-    """Joins a list into 'a, b, c', or returns 'none' if it is empty or missing."""
-    return ", ".join(items or []) or "none"
-
-
-def format_yes_no(value: bool) -> str:
-    """Returns 'YES' for True and 'no' for False, so warnings stand out."""
-    return "YES" if value else "no"
-
-
-def format_threat_level(level: int | float | None) -> str:
-    """Returns e.g. '92/100', or 'unknown' if the AI gave no usable number."""
-    if isinstance(level, bool) or not isinstance(level, (int, float)):
+def format_value(value) -> str:
+    """Turns any value into display text based on its type, not on its field name."""
+    if value is None:
         return "unknown"
-    return f"{int(level)}/100"
+    if isinstance(value, bool):
+        return "YES" if value else "no"
+    if isinstance(value, dict):
+        return ", ".join(format_value(item) for item in value.values())
+    if isinstance(value, list):
+        return ", ".join(format_value(item) for item in value) or "none"
+    return str(value)
 
 
-def format_tactics(tactics: list[str] | None) -> str:
-    """Turns ['urgency_pressure', ...] into 'urgency pressure, ...'."""
-    return format_list([tactic.replace("_", " ") for tactic in tactics or []])
+def format_section(fields: list[tuple[str, object]], label_width: int) -> list[str]:
+    """Returns aligned 'Label: value' lines for a list of (key, value) pairs."""
+    return [f"{format_label(key) + ':':<{label_width}}{format_value(value)}" for key, value in fields]
 
 
 # --- Display results ---
-AI_UNAVAILABLE = "AI_UNAVAILABLE"
-
-
-def is_ai_result_usable(ai_result: dict | None) -> bool:
-    """Returns False if the AI failed (None) or returned the AI_UNAVAILABLE placeholder."""
-    return isinstance(ai_result, dict) and ai_result.get("classification") != AI_UNAVAILABLE
-
-
 def build_result_lines(record: dict, ai_result: dict | None, severity: str,
                        action: str, is_campaign: bool = False) -> list[str]:
-    """Builds the screening result as a list of display lines (no printing)."""
-    sender = f"{record['sender_name'] or '(no display name)'} <{record['sender_email']}>"
-    lines = [
-        format_divider("="),
-        " SCREENING RESULT",
-        format_divider("="),
-        format_field("Sender", sender),
-        format_field("Subject", record["subject"]),
-        format_divider(),
+    """Builds the screening result from the record, whatever fields the AI returned, and logic's decision."""
+    ai_fields = list(ai_result.items()) if isinstance(ai_result, dict) and ai_result else [("ai_result", None)]
+    sections = [
+        [
+            ("sender", f"{record['sender_name']} <{record['sender_email']}>".strip()),
+            ("subject", record["subject"]),
+            ("reported_at", record["reported_at"]),
+        ],
+        ai_fields,
+        [
+            ("campaign", is_campaign),
+            ("severity", severity),
+            ("recommended_action", action),
+        ],
     ]
 
-    if is_ai_result_usable(ai_result):
-        lines += [
-            format_field("Classification", str(ai_result.get("classification", "unknown"))),
-            format_field("Threat level", format_threat_level(ai_result.get("threat_level"))),
-            format_field("Tactics", format_tactics(ai_result.get("tactics_detected"))),
-            format_field("Suspicious URLs", format_list(ai_result.get("suspicious_urls"))),
-            format_field("Suspicious files", format_list(ai_result.get("suspicious_attachments"))),
-            format_field("Domain mismatch", format_yes_no(bool(ai_result.get("sender_domain_mismatch")))),
-        ]
-    else:
-        lines.append(format_field("AI assessment", "unavailable - needs manual review"))
+    label_width = max(len(format_label(key)) for section in sections for key, _ in section) + 2
+    blocks = [format_section(section, label_width) for section in sections]
+    width = max(len(line) for block in blocks for line in block)
 
-    lines += [
-        format_field("Campaign", format_yes_no(is_campaign)),
-        format_divider(),
-        format_field("Severity", format_severity(severity)),
-        format_field("Action", action),
-        format_divider("="),
-    ]
+    lines = ["=" * width, "SCREENING RESULT", "=" * width]
+    for index, block in enumerate(blocks):
+        if index > 0:
+            lines.append("-" * width)
+        lines += block
+    lines.append("=" * width)
     return lines
 
 
