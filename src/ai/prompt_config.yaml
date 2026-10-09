@@ -14,12 +14,24 @@ requirements:
     - threat_of_consequence
 
   output_fields:
-    classification: "string, one of allowed_classifications"
-    threat_level: "integer 0-100"
-    tactics_detected: "list of strings, only from tactics_vocabulary, no duplicates"
-    suspicious_urls: "list of strings, [] if none"
-    suspicious_attachments: "list of strings, [] if none"
-    sender_domain_mismatch: "boolean"
+    classification: 
+      type: string
+      description: "one of allowed_classifications"
+    threat_level:
+      type: integer
+      description: "0-100"
+    tactics_detected: 
+      type: list
+      description: "list of strings, only from tactics_vocabulary, no duplicates"
+    suspicious_urls: 
+      type: list
+      description: "list of strings, [] if none"
+    suspicious_attachments: 
+      type: list
+      description: "list of strings, [] if none"
+    sender_domain_mismatch: 
+      type: boolean
+      description: "boolean"
 
   rules:
     - "Output JSON only, no text or markdown outside the object"
