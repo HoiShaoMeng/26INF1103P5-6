@@ -144,20 +144,26 @@ def build_user_prompt(email_data=SAMPLE_EMAILS["spear_phishing_ceo"]):
     """Builds the user prompt string from the email data.
 
     Args:
-        email_data (dict): The email data with keys like 'sender_email', 'sender_name', etc.
+        email_data (dict): The email data with keys such as 'sender_email',
+            'sender_name', 'subject', 'body', 'urls', and 'attachments'.
+            Attachments must be dictionaries containing a 'filename' key and
+            may also contain an 'extension' key.
 
     Returns:
         str: The user prompt string.
     """
+    attachment_names = [
+        attachment["filename"]
+        for attachment in email_data.get("attachments", [])
+    ]
     return (
         f"Sender email: {email_data['sender_email']}\n"
         f"Sender name: {email_data['sender_name']}\n"
         f"Subject: {email_data['subject']}\n"
         f"Body: {email_data['body']}\n"
         f"URLs: {', '.join(email_data.get('urls', [])) or 'none'}\n"
-        f"Attachments: {', '.join(a["filename"] for a in email_data.get("attachments", []))}"
+        f"Attachments: {', '.join(attachment_names) or 'none'}\n"
     )
-
 
 def is_response_dictionary(response_dict):
     """Checks whether the model's response is a dictionary.
@@ -219,7 +225,6 @@ def has_valid_threat_level(response_dict, threat_level_range):
         return False
     return True
 
-
 def has_lists_of_strings(response_dict, list_keys):
     """Checks whether the specified keys in the response are lists of strings.
 
@@ -241,7 +246,6 @@ def has_lists_of_strings(response_dict, list_keys):
                 print(f"Item in list for key {key} is not a string.")
                 return False
     return True
-
 
 def has_valid_tactics(response_dict, tactics_vocabulary):
     """Checks that tactics are allowed and are not duplicated.
