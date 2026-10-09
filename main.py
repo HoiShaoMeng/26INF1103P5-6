@@ -5,33 +5,22 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 for layer in ("io", "ai", "logic", "data"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
-import ai_manager
-import data_manager
 import io_manager
+import ai_manager
 import logic_manager
-
-MAX_RETRIES = 3
+import data_manager
 
 if __name__ == "__main__":
     report_dict = io_manager.prompt_email_fields()
-
-    config = ai_manager.load_prompt_config()
-    if config is None:
-        io_manager.display_error("AI", "prompt_config.yaml is missing or invalid",
-                             "Restore the file and run again.")
-        sys.exit(1)
-    system_prompt = ai_manager.build_system_prompt(config)
+    
+    system_prompt = ai_manager.build_system_prompt(ai_manager.load_prompt_config())
     ai_input = io_manager.get_ai_input(report_dict)
     user_prompt = ai_manager.build_user_prompt(ai_input)
-    
-    # step 7 (ai, ping xuan)
-    response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, config)
-    for attempt in range(1, MAX_RETRIES + 1):  # retry up to 3 times if AI is unavailable
-        if response_dict["classification"] != ai_manager.AI_UNAVAILABLE:
-            break
-        print(f"Retrying AI request ({attempt}/{MAX_RETRIES})...")
-        response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, config)
-    
+    response_dict = dict()
+    status = False
+    while not response_dict:
+        response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, response_dict)
+
     #step 8 (data, jeremy): load the saved report history
     history = data_manager.read_file()
 
@@ -55,13 +44,4 @@ if __name__ == "__main__":
         #step 15 (data, shao): save the whole history, True if saved, False if it failed
         saved = data_manager.write_file(history)
 
-    #step 16 (io, wei wen): show an AI error if the AI could not assess the email, then show the result
-    if response_dict.get("classification") == ai_manager.AI_UNAVAILABLE:
-        io_manager.display_error("AI", "the AI could not give a valid assessment", recommended_action)
-    
-    #step 17 (io, wei wen): show the result to the user
-    io_manager.display_screening_result(report_dict, response_dict, severity, recommended_action, is_campaign)
-
-    #step 18 (io, wei wen): tell the user if the report could not be saved
-    if not saved:
-        io_manager.display_error("Data", "the report could not be saved")
+    print(response_dict)
