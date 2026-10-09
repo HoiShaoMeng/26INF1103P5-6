@@ -210,6 +210,29 @@ def format_tactics(tactics: list[str] | None) -> str:
     return format_list([tactic.replace("_", " ") for tactic in tactics or []])
 
 
+def format_label(key: str) -> str:
+    """Turns a data key into a label, e.g. 'threat_level' -> 'Threat level'."""
+    return key.replace("_", " ").capitalize()
+
+
+def format_value(value) -> str:
+    """Turns any value into display text based on its type, not on its field name."""
+    if value is None:
+        return "unknown"
+    if isinstance(value, bool):
+        return "YES" if value else "no"
+    if isinstance(value, dict):
+        return ", ".join(format_value(item) for item in value.values())
+    if isinstance(value, list):
+        return ", ".join(format_value(item) for item in value) or "none"
+    return str(value)
+
+
+def format_section(fields: list[tuple[str, object]], label_width: int) -> list[str]:
+    """Returns aligned 'Label: value' lines for a list of (key, value) pairs."""
+    return [f"{format_label(key) + ':':<{label_width}}{format_value(value)}" for key, value in fields]
+
+
 # --- Display results ---
 AI_UNAVAILABLE = "AI_UNAVAILABLE"
 
