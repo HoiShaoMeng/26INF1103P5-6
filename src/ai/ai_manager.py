@@ -35,7 +35,10 @@ SAMPLE_EMAILS = {
             "Regards,\nAccounts Payable"
         ),
         "urls": [],
-        "attachments": ["INV-20931.pdf.exe", "payment_details.docm"],
+        "attachments": [
+            {"filename": "INV-20931.pdf.exe", "extension": "exe"},
+            {"filename": "payment_details.docm", "extension": "docm"},
+        ],
     },
 
     # Expected: phishing, threat_level 50-75 (IT impersonation, softer tone)
@@ -94,7 +97,9 @@ SAMPLE_EMAILS = {
             "Mei Lin"
         ),
         "urls": [],
-        "attachments": ["meeting_notes_2026-09-28.pdf"],
+        "attachments": [
+            {"filename": "meeting_notes_2026-09-28.pdf", "extension": "pdf"},
+        ],
     },
 }
 
@@ -133,7 +138,7 @@ def build_system_prompt(config):
     system_prompt = ("You are a phishing detection assistant. "
                     "Respond ONLY with valid JSON matching this schema:{ "
                     f'"classification": {req["allowed_classifications"]}, '
-                    f'"tactics_used": {req["tactics_vocabulary"]}, '
+                    f'"tactics_detected": {req["tactics_vocabulary"]}, '
                     f'"threat_level": {req["threat_level_range"]},'
                     f'"output_fields_rules": {output_field_rules},'
                     f'"rule": {req["rules"]},'
@@ -144,20 +149,182 @@ def build_user_prompt(email_data=SAMPLE_EMAILS["spear_phishing_ceo"]):
     """Builds the user prompt string from the email data.
 
     Args:
-        email_data (dict): The email data with keys like 'sender_email', 'sender_name', etc.
+        email_data (dict): The email data with keys such as 'sender_email',
+            'sender_name', 'subject', 'body', 'urls', and 'attachments'.
+            Attachments must be dictionaries containing a 'filename' key and
+            may also contain an 'extension' key.
 
     Returns:
         str: The user prompt string.
     """
+    attachment_names = [
+        attachment["filename"]
+        for attachment in email_data.get("attachments", [])
+    ]
     return (
         f"Sender email: {email_data['sender_email']}\n"
         f"Sender name: {email_data['sender_name']}\n"
         f"Subject: {email_data['subject']}\n"
         f"Body: {email_data['body']}\n"
         f"URLs: {', '.join(email_data.get('urls', [])) or 'none'}\n"
-        f"Attachments: {', '.join(a["filename"] for a in email_data.get("attachments", []))}"
+        f"Attachments: {', '.join(attachment_names) or 'none'}\n"
     )
 
+def is_response_dictionary(response_dict):
+    """Checks whether the model's response is a dictionary.
+    Args:
+        response_dict: The parsed JSON response from the model.
+
+    Returns:
+        bool: True if the response is a dictionary, False otherwise.
+    """
+    if not isinstance(response_dict, dict):
+        print("Response is not a dictionary.")
+        return False
+    return True
+
+def is_allowed_classification(classification, allowed_classifications):
+    """Checks whether the classification is in the allowed classifications.
+
+    Args:
+        classification (str): The classification returned by the model.
+        allowed_classifications (list): The list of allowed classifications.
+    Returns:
+        bool: True if the classification is allowed, False otherwise.
+    """
+    return classification in allowed_classifications
+
+def has_required_keys(response_dict, required_keys):
+    """Checks whether the model's response contains all required keys.
+    Args:
+        response_dict: The parsed JSON response from the model.
+        required_keys (list): A list of required keys.
+
+    Returns:
+        bool: True if all required keys are present, False otherwise.
+    """
+    for key in required_keys:
+        if key not in response_dict:
+            print(f"Missing required key in response: {key}")
+            return False
+    return True
+
+def has_valid_threat_level(response_dict, threat_level_range):
+    """Checks whether the response threat level is an integer and in range.
+    Args:
+        response_dict: The parsed JSON response from the model.
+        threat_level_range (list): A list containing the minimum and maximum allowed threat levels.
+
+    Returns:
+        bool: True if the threat level is valid, False otherwise.
+    """
+    if "threat_level" not in response_dict:
+        return True
+
+    threat_level = response_dict["threat_level"]
+    if isinstance(threat_level, bool) or not isinstance(threat_level, int):
+        print("Threat level is not an integer.")
+        return False
+    if threat_level < threat_level_range[0] or threat_level > threat_level_range[1]:
+        print("Threat level is out of the allowed range.")
+        return False
+    return True
+
+def has_lists_of_strings(response_dict, list_keys):
+    """Checks whether the specified keys in the response are lists of strings.
+
+    Args:
+        response_dict: The parsed JSON response from the model.
+        list_keys (list): A list of keys that should contain lists of strings.
+    Returns:
+        bool: True if all specified keys contain lists of strings, False otherwise.
+    """
+    for key in list_keys:
+        if key not in response_dict:
+            print(f"Key not found in response: {key}")
+            return False
+        if not isinstance(response_dict[key], list):
+            print(f"Value for key {key} is not a list.")
+            return False
+        for item in response_dict[key]:
+            if not isinstance(item, str):
+                print(f"Item in list for key {key} is not a string.")
+                return False
+    return True
+
+def has_valid_tactics(response_dict, tactics_vocabulary):
+    """Checks that tactics are allowed and are not duplicated.
+
+    Args:
+        response_dict: The parsed JSON response from the model.
+        tactics_vocabulary: The list of tactics allowed by the configuration.
+
+    Returns:
+        bool: True if all tactics are allowed and unique, False otherwise.
+    """
+    tactics = response_dict["tactics_detected"]
+    if len(tactics) != len(set(tactics)):
+        print("Tactics detected must not contain duplicates.")
+        return False
+    if any(tactic not in tactics_vocabulary for tactic in tactics):
+        print("Tactics detected contains an unknown tactic.")
+        return False
+    return True
+
+def is_boolean(value):
+    """Checks whether the value is a boolean.
+
+    Args:
+        value: The value to check.
+
+    Returns:
+        bool: True if the value is a boolean, False otherwise.
+    """
+    return isinstance(value, bool)
+
+def validate_schema(response_dict, config):
+    """Validates the model's response against the expected schema defined in the prompt configuration.
+
+    Args:
+        response_dict (dict): The parsed JSON response from the model.
+        config (dict): The prompt configuration containing the expected schema.
+
+    Returns:
+        bool: True if valid, False otherwise.
+    """
+    req = config["requirements"]
+    required_keys = req["output_fields"].keys()
+    if not is_response_dictionary(response_dict):
+        return False
+
+    if not is_allowed_classification(response_dict.get("classification"), req["allowed_classifications"]):
+        return False
+
+    if not has_required_keys(response_dict, required_keys):
+        return False
+
+    threat_level_range = req["threat_level_range"]
+    if not has_valid_threat_level(response_dict, threat_level_range):
+        return False
+
+    field_types = {
+        key: field["type"] for key, field in req["output_fields"].items()
+    }
+    list_keys = [key for key, value in field_types.items() if value == "list"]
+    if not has_lists_of_strings(response_dict, list_keys):
+        return False
+
+    if not has_valid_tactics(response_dict, req["tactics_vocabulary"]):
+        return False
+
+    boolean_keys = [key for key, value in field_types.items() if value == "boolean"]
+    for key in boolean_keys:
+        if not is_boolean(response_dict.get(key)):
+            print(f"Value for key {key} is not a boolean.")
+            return False
+
+    # Additional validation logic can be added here (e.g., type checks, value ranges)
+    return True
 
 def parse_response_content(content_str):
     """Converts the model's JSON text into a Python dict.
@@ -195,4 +362,3 @@ def receive_response(api_response):
     except (KeyError, IndexError, TypeError, AttributeError):
         print(f"Unexpected API response structure: {api_response}")
         return None
-
