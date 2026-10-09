@@ -141,6 +141,8 @@ def build_system_prompt(config):
     output_field_rules = req["output_fields"]
     # print(req)
     # print(output_field_rules)
+    # print(req)
+    # print(output_field_rules)
     system_prompt = ("You are a phishing detection assistant. "
                     "Respond ONLY with valid JSON matching this schema:{ "
                     f'"classification": {req["allowed_classifications"]}, '
