@@ -6,6 +6,33 @@ from datetime import datetime
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+# --- Expected input types ---
+# One rule per record field: what it holds, if it is required, its maximum length,
+# and (optionally) which format check it must pass. All input validation reads from here.
+INPUT_RULES = {
+    "sender_email": {"label": "Sender email", "type": "email address", "required": True,
+                     "max_length": 254, "format": "email", "hint": "e.g. name@domain.com"},
+    "sender_name": {"label": "Sender display name", "type": "text", "required": False,
+                    "max_length": 100},
+    "subject": {"label": "Subject", "type": "text", "required": True, "max_length": 200},
+    "body": {"label": "Body text", "type": "multi-line text", "required": True,
+             "max_length": 10000},
+    "urls": {"label": "URL", "type": "http/https link", "required": False,
+             "max_length": 2048, "format": "url",
+             "hint": "must start with http:// or https:// and include a domain"},
+    "attachments": {"label": "Attachment filename", "type": "filename", "required": False,
+                    "max_length": 255, "format": "filename",
+                    "hint": "enter a filename only, e.g. invoice.pdf"},
+}
+
+
+def describe_expected_input(field: str) -> str:
+    """Returns what a field expects, e.g. 'text, required, max 200 characters'."""
+    rule = INPUT_RULES[field]
+    required = "required" if rule["required"] else "optional"
+    return f"{rule['type']}, {required}, max {rule['max_length']} characters"
+
+
 def read_line(prompt: str) -> str:
     """Reads one line from the user, stripped off surrounding whitespace."""
     return input(prompt).strip()
