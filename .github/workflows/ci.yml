@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0
       - name: Check Conventional Commit format
         run: |
-          pattern='^(feat|fix|test|docs|refactor|chore|ci|style|perf)\([a-z-]+\): .{1,72}$'
+          pattern='^(feat|fix|test|docs|refactor|chore|ci|style|perf)(\([a-z-]+\))?: .{1,72}$'
           bad=$(git log --format=%s origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }} | grep -Ev "$pattern" || true)
           if [ -n "$bad" ]; then
             echo "These commit messages don't follow the convention:"
