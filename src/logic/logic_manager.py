@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+
 #fail safe check: True if ai_manager cant get a real AI response and returned the AI_UNAVAILABLE placeholder instead.
 #classify_severity() must run this first so a failed AI call never gets mistaken for a "safe" email.
 #FIRST area to coordinate with AI team, make sure that AI is made to return AI_UNAVAILABLE if it fails to classify a report. 
