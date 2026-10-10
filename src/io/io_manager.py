@@ -1,7 +1,7 @@
 """io_manager: collects and validates reported-email input from the terminal."""
 
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -175,8 +175,8 @@ def collect_attachment_metadata() -> list[dict]:
 
 
 def current_timestamp() -> str:
-    """Returns the current time in ISO format, e.g. '2026-09-28T14:05:00'."""
-    return datetime.now().isoformat(timespec="seconds")
+    """Returns the current UTC time in ISO format, e.g. '2026-09-28T06:05:00+00:00'."""
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def build_email_record(sender_email: str, sender_name: str, subject: str, body: str, urls: list[str], attachments: list[dict]) -> dict:

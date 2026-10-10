@@ -16,6 +16,7 @@ from logic_manager import (  # type: ignore
     is_ai_unavailable,
 )
 
+
 #test case: a properly formed AI_UNAVAILABLE placeholder should be detected as unavailable
 def test_is_ai_unavailable_true_when_classification_matches():
     fake_ai_output = {
