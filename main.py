@@ -5,10 +5,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 for layer in ("io", "ai", "logic", "data"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
-import io_manager
 import ai_manager
-import logic_manager
 import data_manager
+import io_manager
+import logic_manager
 
 if __name__ == "__main__":
     report_dict = io_manager.prompt_email_fields()
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     system_prompt = ai_manager.build_system_prompt(ai_manager.load_prompt_config())
     ai_input = io_manager.get_ai_input(report_dict)
     user_prompt = ai_manager.build_user_prompt(ai_input)
-    response_dict = dict()
+    response_dict = {}
     status = False
     while not response_dict:
         response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, response_dict)
