@@ -33,4 +33,15 @@ if __name__ == "__main__":
     #step 13 (logic, jeremy): turn the severity into the action text
     recommended_action = logic_manager.generate_recommended_action(severity)
 
-   
+    #step 14 (data, shao): pack everything into one report, {} means it cannot be saved
+    new_report = data_manager.format_report(report_dict, response_dict, is_campaign, severity, recommended_action)
+
+    #step 15 (main): add the new report to the history, skipped if it is {}
+    saved = False
+    if new_report:
+        history.append(new_report)
+
+        #step 16 (data, shao): save the whole history, True if saved, False if it failed
+        saved = data_manager.write_file(history)
+
+    print(response_dict)
