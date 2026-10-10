@@ -10,8 +10,6 @@ import ai_manager
 import logic_manager
 import data_manager
 
-
-
 if __name__ == "__main__":
     report_dict = io_manager.prompt_email_fields()
     
@@ -23,4 +21,16 @@ if __name__ == "__main__":
     while not response_dict:
         response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, response_dict)
 
-    print(response_dict)
+    #step 10 (data, jeremy): load the saved report history
+    history = data_manager.read_file()
+
+    #step 11 (logic, jeremy): campaign check, must run before the new report is added to history
+    is_campaign = logic_manager.check_campaign(report_dict, history)
+
+    #step 12 (logic, shao): decide the severity, pass the real campaign result, never a hard-coded False
+    severity = logic_manager.classify_severity(response_dict, is_campaign=is_campaign)
+
+    #step 13 (logic, jeremy): turn the severity into the action text
+    recommended_action = logic_manager.generate_recommended_action(severity)
+
+   
