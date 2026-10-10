@@ -1,5 +1,6 @@
 import json
 import os
+
 import yaml
 from openrouter import OpenRouter
 
@@ -134,8 +135,8 @@ def build_system_prompt(config):
     """
     req = config["requirements"]
     output_field_rules = req["output_fields"]
-    print(req)
-    print(output_field_rules)
+    # print(req)
+    # print(output_field_rules)
     system_prompt = ("You are a phishing detection assistant. "
                     "Respond ONLY with valid JSON matching this schema:{ "
                     f'"classification": {req["allowed_classifications"]}, '
@@ -364,10 +365,7 @@ def receive_response(api_response):
         print(f"Unexpected API response structure: {api_response}")
         return None
 
-system_prompt = build_system_prompt(load_prompt_config())
-user_prompt = build_user_prompt()
-
-def send_request(system=system_prompt, user=user_prompt):
+def send_request(system, user):
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
@@ -380,4 +378,12 @@ def send_request(system=system_prompt, user=user_prompt):
         )
     return res
 
-print(receive_response(send_request()))
+def ai_workflow(system_prompt, user_prompt, response_dict):
+    response = send_request(system_prompt, user_prompt)
+    response_content = receive_response(response)
+    response_dict = parse_response_content(response_content)
+    if validate_schema(response_dict, load_prompt_config()):
+        
+        return response_dict
+    else:
+        return False
