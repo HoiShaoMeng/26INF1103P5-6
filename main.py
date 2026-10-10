@@ -21,27 +21,27 @@ if __name__ == "__main__":
     while not response_dict:
         response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, response_dict)
 
-    #step 10 (data, jeremy): load the saved report history
+    #step 8 (data, jeremy): load the saved report history
     history = data_manager.read_file()
 
-    #step 11 (logic, jeremy): campaign check, must run before the new report is added to history
+    #step 9 (logic, jeremy): campaign check, must run before the new report is added to history
     is_campaign = logic_manager.check_campaign(report_dict, history)
 
-    #step 12 (logic, shao): decide the severity, pass the real campaign result, never a hard-coded False
+    #step 10, 11 (logic, shao): decide the severity, pass the real campaign result, never a hard-coded False
     severity = logic_manager.classify_severity(response_dict, is_campaign=is_campaign)
 
-    #step 13 (logic, jeremy): turn the severity into the action text
+    #step 12 (logic, jeremy): turn the severity into the action text
     recommended_action = logic_manager.generate_recommended_action(severity)
 
-    #step 14 (data, shao): pack everything into one report, {} means it cannot be saved
+    #step 12 (data, shao): pack everything into one report, {} means it cannot be saved
     new_report = data_manager.format_report(report_dict, response_dict, is_campaign, severity, recommended_action)
 
-    #step 15 (main): add the new report to the history, skipped if it is {}
+    #step 13 (main): add the new report to the history, skipped if it is {}
     saved = False
     if new_report:
         history.append(new_report)
 
-        #step 16 (data, shao): save the whole history, True if saved, False if it failed
+        #step 15 (data, shao): save the whole history, True if saved, False if it failed
         saved = data_manager.write_file(history)
 
     print(response_dict)
