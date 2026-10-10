@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -f dockerfile -t phishing-triage .
+      - run: docker build -t phishing-triage .
       - run: docker run --rm phishing-triage python -m compileall -q .
 
   commit-messages:
