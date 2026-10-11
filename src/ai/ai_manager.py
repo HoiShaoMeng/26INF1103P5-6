@@ -3,9 +3,14 @@ import os
 import sys
 
 import yaml
+import sys
 from openrouter import OpenRouter, errors
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
+import io_manager
+from openrouter import errors
+
+sys.path.append('../io')
 import io_manager
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "prompt_config.yaml")
