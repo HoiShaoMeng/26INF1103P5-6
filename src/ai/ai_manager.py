@@ -407,6 +407,16 @@ def send_request(system, user):
     Returns:
         res: unfiltered and unformatted response from OpenRouter.
     """
+    """Sends a request to OpenRouter API through OpenRouter SDK
+
+    Args:
+        system: Format and structure for AI reply to follow.
+
+        user: Email reports given by a user.
+    
+    Returns:
+        res: unfiltered and unformatted response from OpenRouter.
+    """
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
