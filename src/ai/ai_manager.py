@@ -1,7 +1,12 @@
 import json
 import os
 import yaml
+import sys
 from openrouter import OpenRouter
+from openrouter import errors
+
+sys.path.append('../io')
+import io_manager
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "prompt_config.yaml")
 
@@ -368,13 +373,29 @@ def send_request(system, user):
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
-        res = open_router.chat.send(
-            model= "dots-studio/dots-3-note-preview:free",
-            messages=[
-                {"role": "system", "content": system}, {"role": "user", "content": user}
-            ],
-            stream=False,
-        )
+        try:
+            res = open_router.chat.send(
+                model= "dots-studio/dots-3-note-preview:free",
+                messages=[
+                    {"role": "system", "content": system}, {"role": "user", "content": user}
+                ],
+                stream=False,
+            )
+            if "error" in res:
+                raise Exception(f'{res["error"]["message"]} ({res["error"]["code"]})')
+
+        except errors.TooManyRequestsResponseError as e:
+            io_manager.display_error("AI request",f"Rate limit hit (429): {e}")
+            return None
+        except errors.UnauthorizedResponseError as e:
+            io_manager.display_error("AI request",f"Invalid API key (401): {e}")
+            return None
+        except errors.InternalServerResponseError as e:
+            io_manager.display_error("AI request",f"OpenRouter or upstream server error (500): {e}")
+            return None
+        except Exception as e:
+            io_manager.display_error("AI request",f"{e}")
+            return None
     return res
 
 def ai_workflow(system_prompt, user_prompt, response_dict):
