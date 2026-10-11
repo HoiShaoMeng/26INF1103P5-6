@@ -389,6 +389,16 @@ def receive_response(api_response):
         return None
 
 def send_request(system, user):
+    """Sends a request to OpenRouter API through OpenRouter SDK
+
+    Args:
+        system: Format and structure for AI reply to follow.
+
+        user: Email reports given by a user.
+    
+    Returns:
+        res: unfiltered and unformatted response from OpenRouter.
+    """
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
@@ -418,6 +428,18 @@ def send_request(system, user):
     return res
 
 def ai_workflow(system_prompt, user_prompt, response_dict):
+    """Runs the full process from sending request to returning a formatted dictionary
+
+    Args:
+        system_prompt: The structure that the AI is required to follow
+
+        user_prompt: The input given by the user
+
+        response_dict: Dictionary for output after checks
+    
+    Returns:
+        response_dict: Dictionary containing parsed content only
+    """
     response = send_request(system_prompt, user_prompt)
     response_content = receive_response(response)
     response_dict = parse_response_content(response_content)
