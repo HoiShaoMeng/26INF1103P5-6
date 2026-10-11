@@ -44,4 +44,11 @@ if __name__ == "__main__":
         #step 15 (data, shao): save the whole history, True if saved, False if it failed
         saved = data_manager.write_file(history)
 
-    print(response_dict)
+    #step 16 (io, wei wen): show an AI error if the AI could not assess the email, then show the result
+    if response_dict.get("classification") == ai_manager.AI_UNAVAILABLE:
+        io_manager.display_error("AI", "the AI could not give a valid assessment", recommended_action)
+    io_manager.display_screening_result(report_dict, response_dict, severity, recommended_action, is_campaign)
+
+    #step 17 (io, wei wen): tell the user if the report could not be saved
+    if not saved:
+        io_manager.display_error("Data", "the report could not be saved")
