@@ -72,12 +72,16 @@ def view_reports_by_severity():
     #io: ask which severity to view
     severity = io_manager.prompt_severity_choice()
 
-    #data, shao: load the saved history and keep only the matching reports
+    #(data, shao): load the saved history and keep only the matching reports
     history = data_manager.read_file()
     matching_reports = data_manager.filter_by_severity(history, severity)
 
+    #(data, shao): put the most dangerous reports first
+    matching_reports = data_manager.sort_by_threat_level(matching_reports)
+
     #io: show the matching reports, or a message if there are none
     io_manager.display_report_list(matching_reports, severity)
+
 
 #shows the menu until the user chooses exit
 def main():

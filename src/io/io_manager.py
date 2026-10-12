@@ -354,7 +354,7 @@ def build_report_list_lines(reports: list[dict], severity: str) -> list[str]:
     if not reports:
         return [heavy_line, f" {title} REPORTS", heavy_line, f" No {title} reports saved yet.", heavy_line]
 
-    lines = [heavy_line, f" {title} REPORTS  ({len(reports)} saved, oldest first)", heavy_line]
+    lines = [heavy_line, f" {title} REPORTS  ({len(reports)} saved, highest threat first)", heavy_line]
     for number, report in enumerate(reports, start=1):
         sender_email = format_value(report.get("sender_email"))
         sender_name = report.get("sender_name")
