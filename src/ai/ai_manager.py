@@ -1,12 +1,11 @@
 import json
 import os
+import sys
 
 import yaml
-import sys
-from openrouter import OpenRouter
-from openrouter import errors
+from openrouter import OpenRouter, errors
 
-sys.path.append('../io')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "prompt_config.yaml")
@@ -114,6 +113,8 @@ AI_UNAVAILABLE = "AI_UNAVAILABLE"
 
 def build_unavailable_result() -> dict:
     """Returns a new schema-complete result for when the AI can't produce a valid answer.
+        Giving the threat_level a default of 50 is a conservative choice, since it is the midpoint of the allowed range (0-100).
+        also falls within the "suspicious" range (50-75) and is a safe default for an unknown threat.
 
     Returns:
         dict: All six output fields with safe defaults, classification
@@ -252,7 +253,7 @@ def has_valid_threat_level(response_dict, threat_level_range):
     if isinstance(threat_level, bool) or not isinstance(threat_level, int):
         print("Threat level is not an integer.")
         return False
-    if threat_level <= threat_level_range[0] or threat_level >= threat_level_range[1]:
+    if threat_level < threat_level_range[0] or threat_level > threat_level_range[1]:
         print("Threat level is out of the allowed range.")
         return False
     return True
@@ -412,8 +413,10 @@ def send_request(system, user):
                 ],
                 stream=False,
             )
-            if "error" in res:
-                raise Exception(f'{res["error"]["message"]} ({res["error"]["code"]})')
+            error = getattr(res, "error", None)
+            if error:
+                io_manager.display_error("AI request", f"OpenRouter returned an error: {error}")
+                return None
 
         except errors.TooManyRequestsResponseError as e:
             io_manager.display_error("AI request",f"Rate limit hit (429): {e}")
@@ -424,12 +427,16 @@ def send_request(system, user):
         except errors.InternalServerResponseError as e:
             io_manager.display_error("AI request",f"OpenRouter or upstream server error (500): {e}")
             return None
-        except Exception as e:
+        except Exception as e: # noqa: BLE001 keep the batch running if OpenRouter returns an unexpected payload or transient failure
+            # OpenRouter is an external service and may raise shapes we did not anticipate
+            # (e.g. malformed JSON, unexpected response objects, or upstream runtime errors).
+            # We do not want one failed AI call to crash the whole workflow; the caller
+            # handles None by returning a safe "AI unavailable" fallback.
             io_manager.display_error("AI request",f"{e}")
             return None
     return res
 
-def ai_workflow(system_prompt, user_prompt, response_dict):
+def ai_workflow(system_prompt, user_prompt, config):
     """Runs the full process from sending request to returning a formatted dictionary
 
     Args:
@@ -437,15 +444,19 @@ def ai_workflow(system_prompt, user_prompt, response_dict):
 
         user_prompt: The input given by the user
 
-        response_dict: Dictionary for output after checks
+        config: The configuration that contains the rules and requirements for the AI to follow
     
     Returns:
         response_dict: Dictionary containing parsed content only
     """
     response = send_request(system_prompt, user_prompt)
+    if response is None:
+        return build_unavailable_result()
+    
     response_content = receive_response(response)
     response_dict = parse_response_content(response_content)
-    if validate_schema(response_dict, load_prompt_config()):
+    if validate_schema(response_dict, config):
+        
         return response_dict
     else:
         return build_unavailable_result()

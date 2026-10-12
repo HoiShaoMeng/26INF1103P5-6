@@ -10,17 +10,28 @@ import data_manager
 import io_manager
 import logic_manager
 
+MAX_RETRIES = 3
+
 if __name__ == "__main__":
     report_dict = io_manager.prompt_email_fields()
-    
-    system_prompt = ai_manager.build_system_prompt(ai_manager.load_prompt_config())
+
+    config = ai_manager.load_prompt_config()
+    if config is None:
+        io_manager.display_error("AI", "prompt_config.yaml is missing or invalid",
+                             "Restore the file and run again.")
+        sys.exit(1)
+    system_prompt = ai_manager.build_system_prompt(config)
     ai_input = io_manager.get_ai_input(report_dict)
     user_prompt = ai_manager.build_user_prompt(ai_input)
-    response_dict = {}
-    status = False
-    while not response_dict:
-        response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, response_dict)
-
+    
+    # step 7 (ai, ping xuan)
+    response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, config)
+    for attempt in range(1, MAX_RETRIES + 1):  # retry up to 3 times if AI is unavailable
+        if response_dict["classification"] != ai_manager.AI_UNAVAILABLE:
+            break
+        print(f"Retrying AI request ({attempt}/{MAX_RETRIES})...")
+        response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, config)
+    
     #step 8 (data, jeremy): load the saved report history
     history = data_manager.read_file()
 
