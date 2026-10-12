@@ -108,6 +108,47 @@ def write_file(reports: list) -> bool:
 
         return False
 
+#filter/query function: returns only the saved reports with the given severity, in the order they were saved.
+#e.g. filter_by_severity(read_file(), "CRITICAL") gives the IT team the list to act on first.
+#it only reads the list, never changes or saves anything, and returns [] if nothing matches.
+def filter_by_severity(reports: list, severity: str) -> list:
+    #anything that is not a list of reports or a severity string cant be filtered, so return [] instead of crashing
+    if not isinstance(reports, list) or not isinstance(severity, str):
+        return []
+
+    #saved severities are always like "NEEDS_REVIEW", so "needs review" or " critical " still match
+    wanted_severity = severity.strip().upper().replace(" ", "_")
+
+    matching_reports = []
+    for report in reports:
+        #skip anything in the history that is not a proper report dict
+        if isinstance(report, dict) and report.get("severity") == wanted_severity:
+            matching_reports.append(report)
+
+    return matching_reports
+
+
+#helper for sorting: gives a report's threat level, or -1 if it is missing or not a number, so those reports go last
+def _threat_level_or_lowest(report: dict) -> float:
+    threat_level = report.get("threat_level")
+    if isinstance(threat_level, (int, float)):
+        return threat_level
+    return -1
+
+#query function: returns the reports sorted from highest to lowest threat level, so the most dangerous are seen first.
+#reports with the same threat level keep their saved order (oldest first), because python's sort is stable.
+#it returns a new list and never changes the original history.
+def sort_by_threat_level(reports: list) -> list:
+    #anything that is not a list of reports cant be sorted, so return [] instead of crashing
+    if not isinstance(reports, list):
+        return []
+
+    #skip anything in the history that is not a proper report dict
+    valid_reports = [report for report in reports if isinstance(report, dict)]
+
+    return sorted(valid_reports, key=_threat_level_or_lowest, reverse=True)
+
+
 if __name__ == "__main__":
     # Run this test only when this file is executed directly.
     print(read_file())
