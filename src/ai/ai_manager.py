@@ -3,12 +3,7 @@ import os
 import sys
 
 import yaml
-import sys
 from openrouter import OpenRouter, errors
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
-import io_manager
-from openrouter import errors
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
@@ -113,26 +108,6 @@ SAMPLE_EMAILS = {
         ],
     },
 }
-
-AI_UNAVAILABLE = "AI_UNAVAILABLE"
-
-def build_unavailable_result() -> dict:
-    """Returns a new schema-complete result for when the AI can't produce a valid answer.
-        Giving the threat_level a default of 50 is a conservative choice, since it is the midpoint of the allowed range (0-100).
-        also falls within the "suspicious" range (50-75) and is a safe default for an unknown threat.
-
-    Returns:
-        dict: All six output fields with safe defaults, classification
-        set to AI_UNAVAILABLE.
-    """
-    return {
-        "classification": AI_UNAVAILABLE,
-        "threat_level": 50,
-        "tactics_detected": [],
-        "suspicious_urls": [],
-        "suspicious_attachments": [],
-        "sender_domain_mismatch": False,
-    }
 
 AI_UNAVAILABLE = "AI_UNAVAILABLE"
 
