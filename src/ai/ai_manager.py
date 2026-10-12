@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
 from openrouter import errors
 
-sys.path.append('../io')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "prompt_config.yaml")
@@ -138,6 +138,8 @@ AI_UNAVAILABLE = "AI_UNAVAILABLE"
 
 def build_unavailable_result() -> dict:
     """Returns a new schema-complete result for when the AI can't produce a valid answer.
+        Giving the threat_level a default of 50 is a conservative choice, since it is the midpoint of the allowed range (0-100).
+        also falls within the "suspicious" range (50-75) and is a safe default for an unknown threat.
 
     Returns:
         dict: All six output fields with safe defaults, classification
@@ -274,7 +276,7 @@ def has_valid_threat_level(response_dict, threat_level_range):
     if isinstance(threat_level, bool) or not isinstance(threat_level, int):
         print("Threat level is not an integer.")
         return False
-    if threat_level <= threat_level_range[0] or threat_level >= threat_level_range[1]:
+    if threat_level < threat_level_range[0] or threat_level > threat_level_range[1]:
         print("Threat level is out of the allowed range.")
         return False
     return True
