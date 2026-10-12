@@ -2,7 +2,6 @@ import json
 import os
 from pathlib import Path
 
-
 def read_file():
     #Locate reports.json relative to this python file,
     #so the program works regardless of the current working directory
@@ -107,6 +106,25 @@ def write_file(reports: list) -> bool:
             pass
 
         return False
+
+#filter/query function: returns only the saved reports with the given severity, in the order they were saved.
+#e.g. filter_by_severity(read_file(), "CRITICAL") gives the IT team the list to act on first.
+#it only reads the list, never changes or saves anything, and returns [] if nothing matches.
+def filter_by_severity(reports: list, severity: str) -> list:
+    #anything that is not a list of reports or a severity string cant be filtered, so return [] instead of crashing
+    if not isinstance(reports, list) or not isinstance(severity, str):
+        return []
+
+    #saved severities are always like "NEEDS_REVIEW", so "needs review" or " critical " still match
+    wanted_severity = severity.strip().upper().replace(" ", "_")
+
+    matching_reports = []
+    for report in reports:
+        #skip anything in the history that is not a proper report dict
+        if isinstance(report, dict) and report.get("severity") == wanted_severity:
+            matching_reports.append(report)
+
+    return matching_reports
 
 if __name__ == "__main__":
     # Run this test only when this file is executed directly.
