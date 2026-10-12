@@ -5,10 +5,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 for layer in ("io", "ai", "logic", "data"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
-import io_manager
 import ai_manager
-import logic_manager
 import data_manager
+import io_manager
+import logic_manager
 
 if __name__ == "__main__":
     report_dict = io_manager.prompt_email_fields()
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     system_prompt = ai_manager.build_system_prompt(ai_manager.load_prompt_config())
     ai_input = io_manager.get_ai_input(report_dict)
     user_prompt = ai_manager.build_user_prompt(ai_input)
-    response_dict = dict()
+    response_dict = {}
     status = False
     while not response_dict:
         response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, response_dict)
@@ -44,4 +44,13 @@ if __name__ == "__main__":
         #step 15 (data, shao): save the whole history, True if saved, False if it failed
         saved = data_manager.write_file(history)
 
-    print(response_dict)
+    #step 16 (io, wei wen): show an AI error if the AI could not assess the email, then show the result
+    if response_dict.get("classification") == ai_manager.AI_UNAVAILABLE:
+        io_manager.display_error("AI", "the AI could not give a valid assessment", recommended_action)
+    
+    #step 17 (io, wei wen): show the result to the user
+    io_manager.display_screening_result(report_dict, response_dict, severity, recommended_action, is_campaign)
+
+    #step 18 (io, wei wen): tell the user if the report could not be saved
+    if not saved:
+        io_manager.display_error("Data", "the report could not be saved")

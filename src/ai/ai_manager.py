@@ -1,5 +1,6 @@
 import json
 import os
+
 import yaml
 import sys
 from openrouter import OpenRouter
@@ -109,6 +110,24 @@ SAMPLE_EMAILS = {
     },
 }
 
+AI_UNAVAILABLE = "AI_UNAVAILABLE"
+
+def build_unavailable_result() -> dict:
+    """Returns a new schema-complete result for when the AI can't produce a valid answer.
+
+    Returns:
+        dict: All six output fields with safe defaults, classification
+        set to AI_UNAVAILABLE.
+    """
+    return {
+        "classification": AI_UNAVAILABLE,
+        "threat_level": 50,
+        "tactics_detected": [],
+        "suspicious_urls": [],
+        "suspicious_attachments": [],
+        "sender_domain_mismatch": False,
+    }
+
 def load_prompt_config(path=CONFIG_PATH):
     """Loads the prompt configuration from a YAML file.
 
@@ -139,6 +158,8 @@ def build_system_prompt(config):
     """
     req = config["requirements"]
     output_field_rules = req["output_fields"]
+    # print(req)
+    # print(output_field_rules)
     # print(req)
     # print(output_field_rules)
     system_prompt = ("You are a phishing detection assistant. "
@@ -231,7 +252,7 @@ def has_valid_threat_level(response_dict, threat_level_range):
     if isinstance(threat_level, bool) or not isinstance(threat_level, int):
         print("Threat level is not an integer.")
         return False
-    if threat_level < threat_level_range[0] or threat_level > threat_level_range[1]:
+    if threat_level <= threat_level_range[0] or threat_level >= threat_level_range[1]:
         print("Threat level is out of the allowed range.")
         return False
     return True
@@ -428,4 +449,4 @@ def ai_workflow(system_prompt, user_prompt, response_dict):
         
         return response_dict
     else:
-        return False
+        return build_unavailable_result()
