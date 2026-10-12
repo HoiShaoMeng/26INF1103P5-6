@@ -1,7 +1,7 @@
 """io_manager: collects and validates reported-email input from the terminal."""
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -248,6 +248,20 @@ def format_section(fields: list[tuple[str, object]], label_width: int) -> list[s
     return [f"{format_label(key) + ':':<{label_width}}{format_value(value)}" for key, value in fields]
 
 
+# Singapore has no daylight saving time, so a fixed UTC+8 offset is always correct.
+SINGAPORE_TIME = timezone(timedelta(hours=8), "SGT")
+
+def format_timestamp(value) -> str:
+    """Turns a saved ISO timestamp into Singapore time for display, e.g. '2026-10-12T13:00:49+00:00' -> '12 Oct 2026, 21:00 SGT'."""
+    try:
+        moment = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return format_value(value)
+    if moment.tzinfo is None:
+        return moment.strftime("%d %b %Y, %H:%M")
+    return moment.astimezone(SINGAPORE_TIME).strftime("%d %b %Y, %H:%M %Z")
+
+
 # --- Display results ---
 def build_result_lines(record: dict, ai_result: dict | None, severity: str,
                        action: str, is_campaign: bool = False) -> list[str]:
@@ -329,18 +343,45 @@ def prompt_severity_choice() -> str:
     """Asks which severity to view and returns it in the saved form, e.g. 'NEEDS_REVIEW'."""
     return SEVERITY_OPTIONS[prompt_choice("View saved reports", SEVERITY_OPTIONS)]
 
+REPORT_LIST_WIDTH = 64
+
 def build_report_list_lines(reports: list[dict], severity: str) -> list[str]:
-    """Builds a short numbered summary of each saved report (no printing). Missing fields show as 'unknown'."""
+    """Builds a boxed, numbered view of the saved reports (no printing). Missing fields show as 'unknown'."""
+    title = severity.replace("_", " ")
+    heavy_line = "=" * REPORT_LIST_WIDTH
+    light_line = "-" * REPORT_LIST_WIDTH
+
     if not reports:
-        return [f"No {severity} reports saved yet."]
-    lines = [f"{len(reports)} {severity} report(s), oldest first:"]
+        return [heavy_line, f" {title} REPORTS", heavy_line, f" No {title} reports saved yet.", heavy_line]
+
+    lines = [heavy_line, f" {title} REPORTS  ({len(reports)} saved, oldest first)", heavy_line]
     for number, report in enumerate(reports, start=1):
-        lines.append(f"{number}. {format_value(report.get('reported_at'))}  {format_value(report.get('sender_email'))}")
-        lines.append(f"   Subject:      {format_value(report.get('subject'))}")
-        lines.append(f"   Threat level: {format_value(report.get('threat_level'))}   "
-                     f"Campaign: {format_value(report.get('is_campaign'))}")
-        lines.append(f"   Action:       {format_value(report.get('recommended_action'))}")
+        sender_email = format_value(report.get("sender_email"))
+        sender_name = report.get("sender_name")
+        sender = f"{sender_name} <{sender_email}>" if sender_name else sender_email
+
+        threat_level = report.get("threat_level")
+        threat_text = f"{threat_level} / 100" if isinstance(threat_level, (int, float)) else format_value(threat_level)
+
+        fields = [
+            ("from", sender),
+            ("subject", report.get("subject")),
+            ("classification", report.get("classification")),
+            ("threat_level", threat_text),
+            ("campaign", report.get("is_campaign")),
+            ("action", report.get("recommended_action")),
+        ]
+        label_width = max(len(format_label(key)) for key, _ in fields) + 2
+
+        lines.append("")
+        lines.append(f" [{number}]  {format_timestamp(report.get('reported_at'))}")
+        lines.append(light_line)
+        lines += ["   " + line for line in format_section(fields, label_width)]
+
+    lines.append("")
+    lines.append(heavy_line)
     return lines
+
 
 def display_report_list(reports: list[dict], severity: str) -> None:
     """Prints the saved reports that match the chosen severity."""
