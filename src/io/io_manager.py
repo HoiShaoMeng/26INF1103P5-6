@@ -302,6 +302,53 @@ def display_error(source: str, problem: str, next_step: str = "") -> None:
     print(format_error_message(source, problem, next_step))
 
 
+
+# --- Menu and saved reports view ---
+MENU_OPTIONS = {"1": "Screen a new email", "2": "View saved reports by severity", "3": "Exit"}
+
+# Must match the severities logic_manager returns and data_manager saves.
+SEVERITY_OPTIONS = {"1": "CRITICAL", "2": "NEEDS_REVIEW", "3": "LOG_ONLY"}
+
+def prompt_choice(title: str, options: dict[str, str]) -> str:
+    """Shows numbered options and re-prompts until the user picks one. Returns the chosen number, e.g. '2'."""
+    print()
+    print(f"=== {title} ===")
+    for number, label in options.items():
+        print(f"  {number}. {label}")
+    while True:
+        choice = read_line("Choose an option: ")
+        if choice in options:
+            return choice
+        show_error(f"Please enter one of: {', '.join(options)}.")
+
+def prompt_menu_choice() -> str:
+    """Shows the main menu and returns '1' (screen), '2' (view reports) or '3' (exit)."""
+    return prompt_choice("Phishing Triage Assistant", MENU_OPTIONS)
+
+def prompt_severity_choice() -> str:
+    """Asks which severity to view and returns it in the saved form, e.g. 'NEEDS_REVIEW'."""
+    return SEVERITY_OPTIONS[prompt_choice("View saved reports", SEVERITY_OPTIONS)]
+
+def build_report_list_lines(reports: list[dict], severity: str) -> list[str]:
+    """Builds a short numbered summary of each saved report (no printing). Missing fields show as 'unknown'."""
+    if not reports:
+        return [f"No {severity} reports saved yet."]
+    lines = [f"{len(reports)} {severity} report(s), oldest first:"]
+    for number, report in enumerate(reports, start=1):
+        lines.append(f"{number}. {format_value(report.get('reported_at'))}  {format_value(report.get('sender_email'))}")
+        lines.append(f"   Subject:      {format_value(report.get('subject'))}")
+        lines.append(f"   Threat level: {format_value(report.get('threat_level'))}   "
+                     f"Campaign: {format_value(report.get('is_campaign'))}")
+        lines.append(f"   Action:       {format_value(report.get('recommended_action'))}")
+    return lines
+
+def display_report_list(reports: list[dict], severity: str) -> None:
+    """Prints the saved reports that match the chosen severity."""
+    print()
+    for line in build_report_list_lines(reports, severity):
+        print(line)
+
+
 if __name__ == "__main__":
     # Manual test harness: python src/io/io_manager.py
     test_record = prompt_email_fields()
