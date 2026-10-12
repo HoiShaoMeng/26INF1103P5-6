@@ -12,7 +12,8 @@ import logic_manager
 
 MAX_RETRIES = 3
 
-if __name__ == "__main__":
+#menu option 1: screen one reported email from input to saved result
+def screen_one_email():
     report_dict = io_manager.prompt_email_fields()
 
     config = ai_manager.load_prompt_config()
@@ -65,3 +66,29 @@ if __name__ == "__main__":
     #step 18 (io, wei wen): tell the user if the report could not be saved
     if not saved:
         io_manager.display_error("Data", "the report could not be saved")
+
+#menu option 2: show the saved reports of one severity, e.g. all CRITICAL ones to act on first
+def view_reports_by_severity():
+    #io: ask which severity to view
+    severity = io_manager.prompt_severity_choice()
+
+    #data, shao: load the saved history and keep only the matching reports
+    history = data_manager.read_file()
+    matching_reports = data_manager.filter_by_severity(history, severity)
+
+    #io: show the matching reports, or a message if there are none
+    io_manager.display_report_list(matching_reports, severity)
+
+#shows the menu until the user chooses exit
+def main():
+    while True:
+        choice = io_manager.prompt_menu_choice()
+        if choice == "1":
+            screen_one_email()
+        elif choice == "2":
+            view_reports_by_severity()
+        else:
+            break
+
+if __name__ == "__main__":
+    main()
