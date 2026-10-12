@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 
+
 def read_file():
     #Locate reports.json relative to this python file,
     #so the program works regardless of the current working directory
