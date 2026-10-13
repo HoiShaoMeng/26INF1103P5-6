@@ -1,5 +1,6 @@
 import json
 import os
+import io_manager
 from pathlib import Path
 
 
@@ -17,7 +18,7 @@ def read_file():
 
         # Ensure the report history is stored as a list.
         if not isinstance(data, list):
-            print("Reports file has an invalid format.")
+            io_manager.display_error("Data", "Reports file has an invalid format.")
             return []
 
         return data
@@ -28,7 +29,7 @@ def read_file():
 
     except json.JSONDecodeError:
         #Prevent the program from crashing if the JSON file is corrupted/invalid
-        print("Invalid JSON format in reports file.")
+        io_manager.display_error("Data", "Invalid JSON format in reports file.")
         return []
 
 #builds the one flat record that gets saved to reports.json, it only arranges data and never decides anything.
@@ -151,4 +152,5 @@ def sort_by_threat_level(reports: list) -> list:
 
 if __name__ == "__main__":
     # Run this test only when this file is executed directly.
-    print(read_file())
+    io_manager.display_info("Data", "Testing data manager functions.")
+    read_file()
