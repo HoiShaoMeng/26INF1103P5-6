@@ -27,7 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t phishing-triage .
-      - run: docker run --rm phishing-triage python -m compileall -q .
+      - name: Run tests in the docker container
+        run: docker run --rm phishing-triage python -m pytest -q tests/
 
   commit-messages:
     if: github.event_name == 'pull_request'
