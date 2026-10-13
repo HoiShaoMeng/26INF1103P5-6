@@ -150,7 +150,3 @@ def sort_by_threat_level(reports: list) -> list:
     return sorted(valid_reports, key=_threat_level_or_lowest, reverse=True)
 
 
-if __name__ == "__main__":
-    # Run this test only when this file is executed directly.
-    io_manager.display_info("Data", "Testing data manager functions.")
-    read_file()
