@@ -398,8 +398,13 @@ def send_request(system, user, config):
     Returns:
         The OpenRouter response object, or None if the request failed.
     """
-    model = config["model"]
-    temperature = config["temperature"]
+    try:
+        model = config["model"]
+        temperature = config["temperature"]
+    except KeyError as e:
+        io_manager.display_error("AI request", f"Missing key in config: {e}")
+        return None
+
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
