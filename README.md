@@ -159,6 +159,19 @@ Choose an option: 1
 ```
 </details>
 
+## Architecture
+
+The program is fully procedural (no class definitions) and is split to 4 managers. `main.py` runs the menu and passes the menu between them. Each manager has one job
+```mermaid
+flowchart LR
+U[User Input] --> IO[I/O Manager\ncollect and validate]
+IO --> AI[AI Manager\nbuild prompts, API call and schema check]
+AI --> L[Logic Manager\ncampaign check, assign severity and action]
+L --> D[(Data Manager\ndata/reports.json)]
+D --> L
+L --> OUT[I/O Manager\ndisplay result]
+```
+
 ## Setup
 
 ### Prerequisites
