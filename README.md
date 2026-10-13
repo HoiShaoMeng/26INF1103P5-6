@@ -1,4 +1,5 @@
 # Phishing / Suspicious Email Triage Assistant
+
 INF1103 Team Project, Group P5-6
 
 Small IT teams without a dedicated SOC (Security Operations Center) face a major bottleneck. General staff constantly report suspicious emails, but with limited manpower, often just a handful of staff supporting an entire organization, there’s no quick way to determine if each report is genuine phishing or just spam. Every reported email must be read and judged one at a time by a small IT team.
@@ -11,6 +12,7 @@ The full problem statement, including the internship experience that motivated
 the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 
 ## Features
+
 - Email report collection and validation
   - Prompts the user to enter key email details such as sender, subject, body text, URLs, and attachments
   - Validates the input to reduce errors before analysis
@@ -52,14 +54,126 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
     - View saved reports grouped by severity
     - Review the most urgent cases first
 
+## Usage
+
+When program starts, choose from the menu shown:
+
+1. **Screen a new email.** <br>Enter the sender's email address and display
+   name, the subject, the body (type `END` on its own line to finish), and any
+   URLs or attachment filenames. The assistant classifies the email, decides its
+   severity, shows a recommended action and saves the report.
+2. **View saved reports by severity.** <br>Choose CRITICAL, NEEDS_REVIEW or LOG_ONLY
+   to list those reports, highest threat level first.
+3. **Exit.**
+
+<details><summary>Example: screening an email</summary>
+
+```Bash
+=== Report a suspicious email ===
+Sender email: john.tan@yourcompany-support.com
+Sender display name (optional, press Enter to skip): John Tan (CEO)
+Subject: Quick favor - urgent wire transfer
+Body text (paste the email, then type END on its own line to finish):
+Hi Sarah,
+I'm stuck in a meeting and cant't call. Can you process an urgent transfer of $8,500 to our new vendor today? I'll send the account details shortly. Please keep this between us for now, it's time sensitive.
+Thanks, John
+END
+Any URLs found in the email? (y/n): n
+Any attachments? (y/n): n
+
+=== Report a suspicious email ===
+Sender email: john.tan@yourcompany-support.com
+Sender display name (optional, press Enter to skip): John Tan (CEO)
+Subject: Quick favor - urgent wire transfer
+Body text (paste the email, then type END on its own line to finish):
+Hi Sarah,
+I'm stuck in a meeting and cant't call. Can you process an urgent transfer of $8,500 to our new vendor today? I'll send the account details shortly. Please keep this between us for now, it's time sensitive.
+Thanks, John
+END
+Any URLs found in the email? (y/n): n
+Any attachments? (y/n): n
+
+===========================================================================================
+SCREENING RESULT
+===========================================================================================
+Sender:                 John Tan (CEO) <john.tan@yourcompany-support.com>
+Subject:                Quick favor - urgent wire transfer
+Reported at:            2026-10-13T09:41:17+00:00
+-------------------------------------------------------------------------------------------
+Classification:         spear-phishing
+Tactics detected:       impersonation, urgency_pressure, secrecy_request, financial_request
+Threat level:           90
+Suspicious urls:        none
+Suspicious attachments: none
+Sender domain mismatch: YES
+-------------------------------------------------------------------------------------------
+Campaign:               no
+Severity:               CRITICAL
+Recommended action:     Block sender domain and alert all users.
+===========================================================================================
+```
+
+</details>
+<details><summary>Example: viewing saved reports</summary>
+
+```bash
+=== Phishing Triage Assistant ===
+  1. Screen a new email
+  2. View saved reports by severity
+  3. Exit
+Choose an option: 2
+
+=== View saved reports ===
+  1. CRITICAL
+  2. NEEDS_REVIEW
+  3. LOG_ONLY
+Choose an option: 1
+
+================================================================
+ CRITICAL REPORTS  (3 saved, highest threat first)
+================================================================
+
+ [1]  13 Oct 2026, 17:41 SGT
+----------------------------------------------------------------
+   From:           John Tan (CEO) <john.tan@yourcompany-support.com>
+   Subject:        Quick favor - urgent wire transfer
+   Classification: spear-phishing
+   Threat level:   90 / 100
+   Campaign:       no
+   Action:         Block sender domain and alert all users.
+
+ [2]  13 Oct 2026, 18:03 SGT
+----------------------------------------------------------------
+   From:           Accounts Payable <billing@acc0unts-payable.net>
+   Subject:        Overdue invoice #INV-20931 - final notice
+   Classification: phishing
+   Threat level:   85 / 100
+   Campaign:       no
+   Action:         Block sender domain and alert all users.
+
+ [3]  13 Oct 2026, 17:57 SGT
+----------------------------------------------------------------
+   From:           IT Helpdesk <it-helpdesk@yourcompany-mail.org>
+   Subject:        Mailbox storage almost full
+   Classification: phishing
+   Threat level:   80 / 100
+   Campaign:       no
+   Action:         Block sender domain and alert all users.
+
+================================================================
+```
+</details>
+
 ## Setup
 
 ### Prerequisites
+
 - Git 
 - Docker Desktop or Docker Engine
 - A personal OpenRouter API key (Create one at https://openrouter.ai/keys)
 
 ### 1. Clone and configure
+
 ```bash
 git clone https://github.com/HoiShaoMeng/26INF1103P5-6.git
 cd 26INF1103P5-6
@@ -73,11 +187,13 @@ On Windows, save `.env` as UTF-8 (not "with BOM") with LF line endings, or Docke
 won't read the key.
 
 ### 2. Build
+
 ```bash
 docker build -t phishing-triage .
 ```
 
 ### 3. Run
+
 ```bash
 docker run -it --rm --env-file .env -v ./data:/app/data phishing-triage
 ```
