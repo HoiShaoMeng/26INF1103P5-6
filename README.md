@@ -15,7 +15,9 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 
 - [Features](#features)
 - [Usage](#usage)
+- [Architecture](#architecture)
 - [Setup](#setup)
+
 
 
 ## Features
