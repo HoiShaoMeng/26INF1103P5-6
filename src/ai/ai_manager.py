@@ -142,10 +142,10 @@ def load_prompt_config(path=CONFIG_PATH):
         with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
-        print(f"Prompt config not found: {path}")
+        io_manager.display_error("Prompt config", f"File not found: {path}")
         return None
     except yaml.YAMLError as e:
-        print(f"Prompt config is not valid YAML: {e}")
+        io_manager.display_error("Prompt config", f"Prompt config is not valid YAML: {e}")
         return None
 
 def build_system_prompt(config):
@@ -159,8 +159,6 @@ def build_system_prompt(config):
     """
     req = config["requirements"]
     output_field_rules = req["output_fields"]
-    # print(req)
-    # print(output_field_rules)
     system_prompt = ("You are a phishing detection assistant. "
                     "Respond ONLY with valid JSON matching this schema:{ "
                     f'"classification": {req["allowed_classifications"]}, '
@@ -205,7 +203,7 @@ def is_response_dictionary(response_dict):
         bool: True if the response is a dictionary, False otherwise.
     """
     if not isinstance(response_dict, dict):
-        print("Response is not a dictionary.")
+        io_manager.display_error("Response", "Response is not a dictionary.")
         return False
     return True
 
@@ -231,7 +229,7 @@ def has_required_keys(response_dict, required_keys):
     """
     for key in required_keys:
         if key not in response_dict:
-            print(f"Missing required key in response: {key}")
+            io_manager.display_error("Validation", f"Missing required key in response: {key}")
             return False
     return True
 
@@ -249,10 +247,10 @@ def has_valid_threat_level(response_dict, threat_level_range):
 
     threat_level = response_dict["threat_level"]
     if isinstance(threat_level, bool) or not isinstance(threat_level, int):
-        print("Threat level is not an integer.")
+        io_manager.display_error("Validation", "Threat level is not an integer.")
         return False
     if threat_level < threat_level_range[0] or threat_level > threat_level_range[1]:
-        print("Threat level is out of the allowed range.")
+        io_manager.display_error("Validation", "Threat level is out of the allowed range.")
         return False
     return True
 
@@ -267,14 +265,14 @@ def has_lists_of_strings(response_dict, list_keys):
     """
     for key in list_keys:
         if key not in response_dict:
-            print(f"Key not found in response: {key}")
+            io_manager.display_error("Validation", f"Key not found in response: {key}")
             return False
         if not isinstance(response_dict[key], list):
-            print(f"Value for key {key} is not a list.")
+            io_manager.display_error("Validation", f"Value for key {key} is not a list.")
             return False
         for item in response_dict[key]:
             if not isinstance(item, str):
-                print(f"Item in list for key {key} is not a string.")
+                io_manager.display_error("Validation", f"Item in list for key {key} is not a string.")
                 return False
     return True
 
@@ -290,10 +288,10 @@ def has_valid_tactics(response_dict, tactics_vocabulary):
     """
     tactics = response_dict["tactics_detected"]
     if len(tactics) != len(set(tactics)):
-        print("Tactics detected must not contain duplicates.")
+        io_manager.display_error("Validation", "Tactics detected must not contain duplicates.")
         return False
     if any(tactic not in tactics_vocabulary for tactic in tactics):
-        print("Tactics detected contains an unknown tactic.")
+        io_manager.display_error("Validation", "Tactics detected contains an unknown tactic.")
         return False
     return True
 
@@ -346,7 +344,7 @@ def validate_schema(response_dict, config):
     boolean_keys = [key for key, value in field_types.items() if value == "boolean"]
     for key in boolean_keys:
         if not is_boolean(response_dict.get(key)):
-            print(f"Value for key {key} is not a boolean.")
+            io_manager.display_error("Validation", f"Value for key {key} is not a boolean.")
             return False
 
     # Additional validation logic can be added here (e.g., type checks, value ranges)
@@ -365,7 +363,7 @@ def parse_response_content(content_str):
     try:
         return json.loads(content_str)
     except (json.JSONDecodeError, TypeError):
-        print(f"Failed to parse content string as JSON: {content_str}")
+        io_manager.display_error("Response", f"Failed to parse content string as JSON: {content_str}")
         return None
 
 def receive_response(api_response):
@@ -386,7 +384,7 @@ def receive_response(api_response):
         return content_body
 
     except (KeyError, IndexError, TypeError, AttributeError):
-        print(f"Unexpected API response structure: {api_response}")
+        io_manager.display_error("API Response", f"Unexpected API response structure: {api_response}")
         return None
 
 def send_request(system, user, config):
