@@ -2,6 +2,8 @@ import json
 import os
 from pathlib import Path
 
+import io_manager
+
 
 def read_file():
     #Locate reports.json relative to this python file,
@@ -17,7 +19,7 @@ def read_file():
 
         # Ensure the report history is stored as a list.
         if not isinstance(data, list):
-            print("Reports file has an invalid format.")
+            io_manager.display_error("Data", "Reports file has an invalid format.")
             return []
 
         return data
@@ -28,7 +30,7 @@ def read_file():
 
     except json.JSONDecodeError:
         #Prevent the program from crashing if the JSON file is corrupted/invalid
-        print("Invalid JSON format in reports file.")
+        io_manager.display_error("Data", "Invalid JSON format in reports file.")
         return []
 
 #builds the one flat record that gets saved to reports.json, it only arranges data and never decides anything.
@@ -149,6 +151,3 @@ def sort_by_threat_level(reports: list) -> list:
     return sorted(valid_reports, key=_threat_level_or_lowest, reverse=True)
 
 
-if __name__ == "__main__":
-    # Run this test only when this file is executed directly.
-    print(read_file())
