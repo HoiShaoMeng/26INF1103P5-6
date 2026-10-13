@@ -11,6 +11,13 @@ This command-line assistant uses an AI model to assess each reported email, appl
 The full problem statement, including the internship experience that motivated
 the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 
+## Table of Contents
+
+- [Features](#features)
+- [Usage](#usage)
+- [Setup](#setup)
+
+
 ## Features
 
 - Email report collection and validation
@@ -75,19 +82,7 @@ Sender display name (optional, press Enter to skip): John Tan (CEO)
 Subject: Quick favor - urgent wire transfer
 Body text (paste the email, then type END on its own line to finish):
 Hi Sarah,
-I'm stuck in a meeting and cant't call. Can you process an urgent transfer of $8,500 to our new vendor today? I'll send the account details shortly. Please keep this between us for now, it's time sensitive.
-Thanks, John
-END
-Any URLs found in the email? (y/n): n
-Any attachments? (y/n): n
-
-=== Report a suspicious email ===
-Sender email: john.tan@yourcompany-support.com
-Sender display name (optional, press Enter to skip): John Tan (CEO)
-Subject: Quick favor - urgent wire transfer
-Body text (paste the email, then type END on its own line to finish):
-Hi Sarah,
-I'm stuck in a meeting and cant't call. Can you process an urgent transfer of $8,500 to our new vendor today? I'll send the account details shortly. Please keep this between us for now, it's time sensitive.
+I'm stuck in a meeting and can't call. Can you process an urgent transfer of $8,500 to our new vendor today? I'll send the account details shortly. Please keep this between us for now, it's time sensitive.
 Thanks, John
 END
 Any URLs found in the email? (y/n): n
@@ -172,7 +167,7 @@ Choose an option: 1
 - Docker Desktop or Docker Engine
 - A personal OpenRouter API key (Create one at https://openrouter.ai/keys)
 
-### 1. Clone and configure
+### 1. Clone and Configure
 
 ```bash
 git clone https://github.com/HoiShaoMeng/26INF1103P5-6.git
