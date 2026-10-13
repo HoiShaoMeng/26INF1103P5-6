@@ -389,23 +389,24 @@ def receive_response(api_response):
         print(f"Unexpected API response structure: {api_response}")
         return None
 
-def send_request(system, user):
-    """Sends a request to OpenRouter API through OpenRouter SDK
+def send_request(system, user, config):
+    """Sends a request to the OpenRouter API through the OpenRouter SDK.
 
     Args:
-        system: Format and structure for AI reply to follow.
+        system (str): The system prompt describing the format the AI must follow.
+        user (str): The reported email, formatted as the user prompt.
+        config (dict): The loaded prompt config; config["model"] selects the AI model.
 
-        user: Email reports given by a user.
-    
     Returns:
-        res: unfiltered and unformatted response from OpenRouter.
+        The OpenRouter response object, or None if the request failed.
     """
+    model = config["model"]
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
         try:
             res = open_router.chat.send(
-                model= "dots-studio/dots-3-note-preview:free",
+                model= model,
                 messages=[
                     {"role": "system", "content": system}, {"role": "user", "content": user}
                 ],
@@ -447,7 +448,7 @@ def ai_workflow(system_prompt, user_prompt, config):
     Returns:
         response_dict: Dictionary containing parsed content only
     """
-    response = send_request(system_prompt, user_prompt)
+    response = send_request(system_prompt, user_prompt, config)
     if response is None:
         return build_unavailable_result()
     

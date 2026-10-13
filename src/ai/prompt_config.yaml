@@ -1,4 +1,4 @@
-model: "dots-studio/dots-3-note-preview:free"
+model: "nvidia/nemotron-3-super-120b-a12b:free"
 
 requirements:
   allowed_classifications: ["phishing", "spear-phishing", "spam", "benign"]
