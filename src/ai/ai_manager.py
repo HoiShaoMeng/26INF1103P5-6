@@ -399,6 +399,7 @@ def send_request(system, user, config):
         The OpenRouter response object, or None if the request failed.
     """
     model = config["model"]
+    temperature = config["temperature"]
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
@@ -409,6 +410,7 @@ def send_request(system, user, config):
                     {"role": "system", "content": system}, {"role": "user", "content": user}
                 ],
                 stream=False,
+                temperature=temperature,
             )
             error = getattr(res, "error", None)
             if error:
