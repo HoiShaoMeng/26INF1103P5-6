@@ -3,7 +3,6 @@
 import re
 import sys
 import threading
-import time
 from datetime import UTC, datetime, timedelta, timezone
 from urllib.parse import urlparse
 
