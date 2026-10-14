@@ -61,7 +61,7 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 
 - Report review menu
   - Lets users:
-    - Screen a new suspicious email,
+    - Screen a new suspicious email
     - View saved reports grouped by severity
     - Review the most urgent cases first
 
@@ -181,7 +181,7 @@ L --> OUT[I/O Manager\ndisplay result]
 | I/O | `src/io/io_manager.py` | Menus, input validation and re-prompting, formatting and printing every message, record and list |
 | AI | `src/ai/ai_manager.py` | Builds the prompts from `prompt_config.yaml`, calls OpenRouter, parses and validates the JSON response. No domain rules|
 | Logic | `src/logic/logic_manager.py` | Campaign detection, severity rules and the recommended action |
-| Data | `src/data/data_manager.py` | Loads and saves ai response to `data/reports.json`|
+| Data | `src/data/data_manager.py` | Loads and saves ai response in `data/reports.json`|
 
 ## Program Flow
 
