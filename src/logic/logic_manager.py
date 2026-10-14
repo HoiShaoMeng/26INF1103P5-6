@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 #fail safe check: True if ai_manager cant get a real AI response and returned the AI_UNAVAILABLE placeholder instead.
 #classify_severity() must run this first so a failed AI call never gets mistaken for a "safe" email.
 #FIRST area to coordinate with AI team, make sure that AI is made to return AI_UNAVAILABLE if it fails to classify a report. 
-def is_ai_unavailable(ai_output):
+def is_ai_unavailable(ai_output: dict) -> bool:
 
     if not isinstance(ai_output, dict):
         return False
@@ -14,7 +14,7 @@ def is_ai_unavailable(ai_output):
 #campaign detection: True = 3+ reports from the same sender/domain within 24 hours, treat as a coordinated attack.
 #each report dict needs "sender_email" and "reported_at" (ISO format, e.g. 2026-09-25T14:00:00).
 #the current report counts as 1, so 2 matching previous reports are needed to reach 3.
-def check_campaign(current_report, previous_reports):
+def check_campaign(current_report: dict, previous_reports: list) -> bool:
     # Get the current sender email and normalise it by removing extra spaces and converting it to lowercase. 
     #Example: ATTACKER@fake.com and attacker@fake.com may otherwise be treated as different strings.
     current_sender = current_report["sender_email"].strip().lower()
@@ -70,7 +70,7 @@ SEVERITY_ESCALATION_ORDER = [SEVERITY_LOG_ONLY, SEVERITY_NEEDS_REVIEW, SEVERITY_
 
 #bumps a severity one step up the scale, already-CRITICAL stays CRITICAL, doesnt go out of bounds
 #finds the position of the current severity in the list. E.g. "NEEDS_REVIEW" is at index 1.
-def _escalate_one_tier(severity):
+def _escalate_one_tier(severity: str) -> str:
     current_index = SEVERITY_ESCALATION_ORDER.index(severity)
     next_index = min(current_index + 1, len(SEVERITY_ESCALATION_ORDER) - 1)
     return SEVERITY_ESCALATION_ORDER[next_index]
@@ -78,7 +78,7 @@ def _escalate_one_tier(severity):
 #decides severity for one AI-enriched report.
 #is_campaign is optional: pass True if check_campaign() already returned True for this report,
 #leave it as the default False if there is no report history to compare against yet.
-def classify_severity(ai_output, is_campaign=False):
+def classify_severity(ai_output: dict, is_campaign: bool=False) -> str:
 
     #fail-safe, always checked first, so a failed AI call never gets treated as safe
     #if the ai manager failed to get a real response, we will flag it NEEDS_REVIEW as we do not want to auto-approve a report that the AI could not classify.
@@ -123,7 +123,7 @@ def classify_severity(ai_output, is_campaign=False):
 
 # Generates the recommended action based on the final severity level.
 # Each severity has a fixed action so the IT team knows what to do next.
-def generate_recommended_action(severity):
+def generate_recommended_action(severity: str) -> str:
     
     # CRITICAL threats require immediate action:
     # block the sender domain and warn all users.
