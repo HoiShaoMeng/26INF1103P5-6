@@ -31,7 +31,7 @@ def build_unavailable_result() -> dict:
         "sender_domain_mismatch": False,
     }
 
-def load_prompt_config(path=CONFIG_PATH):
+def load_prompt_config(path=CONFIG_PATH) -> dict | None:
     """Loads the prompt configuration from a YAML file.
 
     Args:
@@ -50,7 +50,7 @@ def load_prompt_config(path=CONFIG_PATH):
         io_manager.display_error("Prompt config", f"Prompt config is not valid YAML: {e}")
         return None
 
-def build_system_prompt(config):
+def build_system_prompt(config: dict) -> str:
     """Builds the system prompt string from the config.
 
     Args:
@@ -71,7 +71,7 @@ def build_system_prompt(config):
                     '}')
     return system_prompt
 
-def build_user_prompt(email_data):
+def build_user_prompt(email_data: dict) -> str:
     """Builds the user prompt string from the email data.
 
     Args:
@@ -96,7 +96,7 @@ def build_user_prompt(email_data):
         f"Attachments: {', '.join(attachment_names) or 'none'}\n"
     )
 
-def is_response_dictionary(response_dict):
+def is_response_dictionary(response_dict: dict) -> bool:
     """Checks whether the model's response is a dictionary.
     Args:
         response_dict: The parsed JSON response from the model.
@@ -109,7 +109,7 @@ def is_response_dictionary(response_dict):
         return False
     return True
 
-def is_allowed_classification(classification, allowed_classifications):
+def is_allowed_classification(classification: str, allowed_classifications: list) -> bool:
     """Checks whether the classification is in the allowed classifications.
 
     Args:
@@ -120,7 +120,7 @@ def is_allowed_classification(classification, allowed_classifications):
     """
     return classification in allowed_classifications
 
-def has_required_keys(response_dict, required_keys):
+def has_required_keys(response_dict: dict, required_keys: list) -> bool:
     """Checks whether the model's response contains all required keys.
     Args:
         response_dict: The parsed JSON response from the model.
@@ -135,7 +135,7 @@ def has_required_keys(response_dict, required_keys):
             return False
     return True
 
-def has_valid_threat_level(response_dict, threat_level_range):
+def has_valid_threat_level(response_dict: dict, threat_level_range: list) -> bool:
     """Checks whether the response threat level is an integer and in range.
     Args:
         response_dict: The parsed JSON response from the model.
@@ -156,7 +156,7 @@ def has_valid_threat_level(response_dict, threat_level_range):
         return False
     return True
 
-def has_lists_of_strings(response_dict, list_keys):
+def has_lists_of_strings(response_dict: dict, list_keys: list) -> bool:
     """Checks whether the specified keys in the response are lists of strings.
 
     Args:
@@ -178,7 +178,7 @@ def has_lists_of_strings(response_dict, list_keys):
                 return False
     return True
 
-def has_valid_tactics(response_dict, tactics_vocabulary):
+def has_valid_tactics(response_dict: dict, tactics_vocabulary: list) -> bool:
     """Checks that tactics are allowed and are not duplicated.
 
     Args:
@@ -197,7 +197,7 @@ def has_valid_tactics(response_dict, tactics_vocabulary):
         return False
     return True
 
-def is_boolean(value):
+def is_boolean(value: any) -> bool:
     """Checks whether the value is a boolean.
 
     Args:
@@ -208,7 +208,7 @@ def is_boolean(value):
     """
     return isinstance(value, bool)
 
-def validate_schema(response_dict, config):
+def validate_schema(response_dict: dict, config: dict) -> bool:
     """Validates the model's response against the expected schema defined in the prompt configuration.
 
     Args:
@@ -252,7 +252,7 @@ def validate_schema(response_dict, config):
     # Additional validation logic can be added here (e.g., type checks, value ranges)
     return True
 
-def parse_response_content(content_str):
+def parse_response_content(content_str: str) -> dict | None:
     """Converts the model's JSON text into a Python dict.
 
     Args:
@@ -268,7 +268,7 @@ def parse_response_content(content_str):
         io_manager.display_error("Response", f"Failed to parse content string as JSON: {content_str}")
         return None
 
-def receive_response(api_response):
+def receive_response(api_response) -> str | None:
     """Extracts the model's reply text from the OpenRouter SDK response.
 
     Args:
@@ -289,7 +289,7 @@ def receive_response(api_response):
         io_manager.display_error("API Response", f"Unexpected API response structure: {api_response}")
         return None
 
-def send_request(system, user, config):
+def send_request(system: str, user: str, config: dict) -> any | None:
     """Sends a request to the OpenRouter API through the OpenRouter SDK.
 
     Args:
@@ -342,7 +342,7 @@ def send_request(system, user, config):
             return None
     return res
 
-def ai_workflow(system_prompt, user_prompt, config):
+def ai_workflow(system_prompt: str, user_prompt: str, config: dict) -> dict:
     """Runs the full process from sending request to returning a formatted dictionary
 
     Args:
