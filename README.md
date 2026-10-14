@@ -215,12 +215,21 @@ OPENROUTER_API_KEY=sk-or-v1-yourkeyhere
 On Windows, save `.env` as UTF-8 (not "with BOM") with LF line endings, or Docker
 won't read the key.
 
-### 2. Build
+### 2. Get the docker image
 
+**Option A: build from source**
 ```bash
 docker build -t phishing-triage .
 ```
+**Option B: use prebuilt image** (no build needed)
+```bash
+# from the release tar (attached to each GitHub Release, and included in the submission zip)
+docker load -i phishing-triage.tar
 
+# or pull from Github Container Registry
+docker pull ghcr.io/hoishaomeng/26inf1103p5-6:latest
+docker tag ghcr.io/hoishaomeng/26inf1103p5-6:latest phishing-triage
+```
 ### 3. Run
 
 ```bash
