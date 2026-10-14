@@ -318,6 +318,7 @@ def send_request(system: str, user: str, config: dict) -> any | None:
                 ],
                 stream=False,
                 temperature=temperature,
+                timeout_ms=30000,  # 30 seconds
             )
             error = getattr(res, "error", None)
             if error:
