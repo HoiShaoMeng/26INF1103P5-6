@@ -16,7 +16,9 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 - [Features](#features)
 - [Usage](#usage)
 - [Architecture](#architecture)
+- [Program Flow](#program-flow)
 - [Setup](#setup)
+- [Running the Tests](#running-the-tests)
 
 
 
@@ -33,7 +35,7 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
   - Validates the AI response by checking if it matches the expected schema
   - Returns safe fallback result if the AI cannot assess the email
 
-- Threat assessment and prioritisation
+- Threat assessment and prioritization
   - Evaluates the AI's classification, threat level, suspicious URLs, suspicious attachments, and sender-domain mismatch
   - Determines whether the report is low risk, needs review, or is critical
 
@@ -59,7 +61,7 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 
 - Report review menu
   - Lets users:
-    - Screen a new suspicious email,
+    - Screen a new suspicious email
     - View saved reports grouped by severity
     - Review the most urgent cases first
 
@@ -174,6 +176,24 @@ D --> L
 L --> OUT[I/O Manager\ndisplay result]
 ```
 
+| Manager | File | Responsibility |
+|---|---|---|
+| I/O | `src/io/io_manager.py` | Menus, input validation and re-prompting, formatting and printing every message, record and list |
+| AI | `src/ai/ai_manager.py` | Builds the prompts from `prompt_config.yaml`, calls OpenRouter, parses and validates the JSON response. No domain rules|
+| Logic | `src/logic/logic_manager.py` | Campaign detection, severity rules and the recommended action |
+| Data | `src/data/data_manager.py` | Loads and saves ai response in `data/reports.json`|
+
+## Program Flow
+
+**How one email moves through the program**
+
+1. **I/O**: collects the email fields and validates each one (re-prompts for invalid inputs), then adds a UTC `reported_at` timestamp
+2. **AI**: receives only the email content (no timestamp), sends it with the built system prompt, and returns a validated dict: `classification`, `threat_level`, `tactics_detected`, `suspicious_urls`, `suspicious_attachments`, `sender_domain_mismatch`. If the AI cannot give a valid answer it returns `AI_UNAVAILABLE` placeholder instead
+3. **Data**: loads the saved report history
+4. **Logic**: checks the history for a campaign, decides the severity and picks the recommended action
+5. **Data**: combines the email, AI output and decision into one flat record and saves the full history
+6. **I/O**: displays the result of the screening
+
 ## Setup
 
 ### Prerequisites
@@ -196,12 +216,21 @@ OPENROUTER_API_KEY=sk-or-v1-yourkeyhere
 On Windows, save `.env` as UTF-8 (not "with BOM") with LF line endings, or Docker
 won't read the key.
 
-### 2. Build
+### 2. Get the Docker image
 
+**Option A: build from source**
 ```bash
 docker build -t phishing-triage .
 ```
+**Option B: use prebuilt image** (no build needed)
+```bash
+# from the release tar (attached to each GitHub Release, and included in the submission zip)
+docker load -i phishing-triage.tar
 
+# or pull from GitHub Container Registry
+docker pull ghcr.io/hoishaomeng/26inf1103p5-6:latest
+docker tag ghcr.io/hoishaomeng/26inf1103p5-6:latest phishing-triage
+```
 ### 3. Run
 
 ```bash
@@ -212,3 +241,21 @@ docker run -it --rm --env-file .env -v ./data:/app/data phishing-triage
   between runs
 
 On Windows PowerShell, use `-v ${PWD}/data:/app/data` if `./data` gives an error.
+
+## Running the Tests
+
+`tests/test_logic_manager.py` tests the Logic Manager with hardcoded sample AI responses, so it needs **no API key and no internet connection**. It covers the AI fail-safe, the three threat-level bands and their boundaries (49/50, 79/80), Rules A, B and C, campaign detection(same sender, same domain outside 24 hours, UTC timestamps) and every recommended action 
+
+```bash
+# inside Docker (the way the assessment runs it)
+docker run --rm phishing-triage python -m pytest -q tests/
+
+# locally with pytest 
+python -m pytest -q tests/
+
+# locally without pytest, with readable output, add a word to run only matching tests
+python tests/test_logic_manager.py
+python tests/test_logic_manager.py campaign
+```
+
+`tests/sample_emails.py` holds six sample reported emails (spear-phishing, phishing, borderline, spam and two benign) with the result we expect from the AI. They are used for manual testing and the demo, not by the automated tests.
