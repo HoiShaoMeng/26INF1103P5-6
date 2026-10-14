@@ -316,6 +316,10 @@ def display_error(source: str, problem: str, next_step: str = "") -> None:
     print(format_error_message(source, problem, next_step))
 
 
+def show_loading(message: str) -> None:
+    """Tells the user a slow step has started, e.g. 'Analysing email with AI, loading...'."""
+    print(f"{message}, loading...")
+
 
 # --- Menu and saved reports view ---
 MENU_OPTIONS = {"1": "Screen a new email", "2": "View saved reports by severity", "3": "Exit"}
