@@ -174,6 +174,14 @@ D --> L
 L --> OUT[I/O Manager\ndisplay result]
 ```
 
+| Manager | File | Responsibility |
+|---|---|---|
+| I/O | `src/io/io_manager.py` | Menus, input validation and re-prompting, formatting and printing every message, record and list |
+| AI | `src/ai/ai_manager.py` | Builds the prompts from `prompt_config.yaml`, calls OpenRouter, parses and validates the JSON response. No domain rules|
+| Logic | `src/logic/logic_manager.py` | Campaign detection, severity rules and the recommended action |
+| Data | `src/data/data_manager.py` | Loads and saves ai response to `data/reports.json`
+
+
 ## Setup
 
 ### Prerequisites
