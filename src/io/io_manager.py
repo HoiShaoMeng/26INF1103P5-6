@@ -1,6 +1,8 @@
 """io_manager: collects and validates reported-email input from the terminal."""
 
 import re
+import sys
+import threading
 from datetime import UTC, datetime, timedelta, timezone
 from urllib.parse import urlparse
 
@@ -41,7 +43,9 @@ def read_line(prompt: str) -> str:
 
 def show_error(message: str) -> None:
     """Prints a rejection message."""
-    print(f"  [!] {message}")
+    with loading_lock:
+        clear_loading_line()
+        print(f"  [!] {message}")
 
 
 def is_non_empty(value: str) -> bool:
@@ -313,8 +317,9 @@ def format_error_message(source: str, problem: str, next_step: str = "") -> str:
 
 def display_error(source: str, problem: str, next_step: str = "") -> None:
     """Prints an error from any layer; the caller supplies the problem and what happens next."""
-    print(format_error_message(source, problem, next_step))
-
+    with loading_lock:
+        clear_loading_line()
+        print(format_error_message(source, problem, next_step))
 
 
 # --- Menu and saved reports view ---
@@ -388,6 +393,49 @@ def display_report_list(reports: list[dict], severity: str) -> None:
     print()
     for line in build_report_list_lines(reports, severity):
         print(line)
+
+
+# --- Loading animation ---
+LOADING_INTERVAL = 0.4
+loading_state = {"width": 0}
+loading_lock = threading.Lock()
+
+
+def clear_loading_line() -> None:
+    """Wipes the loading line so the next output starts on a clean line."""
+    if loading_state["width"]:
+        print("\r" + " " * loading_state["width"] + "\r", end="", flush=True)
+        loading_state["width"] = 0
+
+
+def animate_loading(message: str, stop: threading.Event) -> None:
+    """Shows 'message.', 'message..', 'message...' in turn until stop is set (runs in a background thread)."""
+    dots = 1
+    while True:
+        line = f"{message}{'.' * dots:<3}"
+        with loading_lock:
+            print("\r" + line, end="", flush=True)
+            loading_state["width"] = len(line)
+        if stop.wait(LOADING_INTERVAL):
+            break
+        dots = dots % 3 + 1
+    with loading_lock:
+        clear_loading_line()
+
+
+def run_with_loading(message: str, task, *args):
+    """Runs task(*args) while animated dots show it is busy, then returns the task's result."""
+    if not sys.stdout.isatty():
+        print(f"{message}...")
+        return task(*args)
+    stop = threading.Event()
+    loading = threading.Thread(target=animate_loading, args=(message, stop), daemon=True)
+    loading.start()
+    try:
+        return task(*args)
+    finally:
+        stop.set()
+        loading.join()
 
 
 if __name__ == "__main__":
