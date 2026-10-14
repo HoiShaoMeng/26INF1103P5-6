@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE: gchr.io/hoishaomeng/26inf1103p5-6
+  IMAGE: ghcr.io/hoishaomeng/26inf1103p5-6
 
 jobs:
   publish:
