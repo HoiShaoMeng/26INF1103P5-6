@@ -240,3 +240,21 @@ docker run -it --rm --env-file .env -v ./data:/app/data phishing-triage
   between runs
 
 On Windows PowerShell, use `-v ${PWD}/data:/app/data` if `./data` gives an error.
+
+## Running the Tests
+
+`tests/test_logic_manager.py` tests the Logic Manager with hardcoded sample AI responses, so it needs **no API key and no internet connection**. It covers the AI fail-safe, the three threat-level bands and their boundries (49/50, 79/80), Rules A, B and C, campaign detection(same sender, same domain outside 24 hours, UTC timestamps) and every recommended action 
+
+```bash
+# inside Docker (the way the assessment runs it)
+docker run --rm phishing-triage python -m pytest -q tests/
+
+# locally with pytest 
+python -m pytest -q tests/
+
+# locally with pytest, with readable output, add a word to run only matching tests
+python tests/test_logic_manager.py
+python tests/test_logic_manager.py campaign
+```
+
+`tests/sample_emails.py` holds six sample reported emails (spear-phishing, phishing, borderline, spam and two benign) with the result we expect from the AI. They are used for manual testing and the demo, not by the automated tests.
