@@ -6,6 +6,7 @@ import threading
 from datetime import UTC, datetime, timedelta, timezone
 from urllib.parse import urlparse
 
+# Text@text.text with no spaces: a quick sanity check.
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -64,18 +65,21 @@ def is_valid_url(value: str) -> bool:
     return parts.scheme in ("http", "https") and parts.netloc != ""
 
 
+# A "/" or "\" (or "." / "..") means the user typed a folder path, not a filename.
 def is_valid_filename(value: str) -> bool:
     """Returns True if the value is a plain filename, not empty and not a folder path."""
     name = value.strip()
     return name not in ("", ".", "..") and "/" not in name and "\\" not in name
 
 
+# Links a rule's "format" in INPUT_RULES to the function that checks it.
 FORMAT_CHECKS = {"email": is_valid_email, "url": is_valid_url, "filename": is_valid_filename}
 
 
 def get_input_error(field: str, value: str) -> str | None:
     """Checks a value against its rule in INPUT_RULES; returns an error message, or None if valid."""
     rule = INPUT_RULES[field]
+    # Checks run in order: empty, then too long, then wrong format. An empty optional field is allowed.
     if not is_non_empty(value):
         return f"{rule['label']} is required." if rule["required"] else None
     if len(value) > rule["max_length"]:
@@ -96,6 +100,7 @@ def prompt_field(prompt: str, field: str) -> str:
         show_error(error)
 
 
+# Lowercase so check_campaign() treats PayPal@x.com and paypal@x.com as the same sender.
 def prompt_sender_email() -> str:
     """Re-prompts until the user enters a valid sender email address."""
     return prompt_field("Sender email: ", "sender_email").lower()
@@ -112,6 +117,7 @@ def prompt_yes_no(prompt: str) -> bool:
         show_error("Please enter y or n.")
 
 
+# A blank line can't end the body, because real emails have blank lines between paragraphs.
 BODY_END_MARKER = "END"
 
 
@@ -150,6 +156,7 @@ def collect_urls() -> list[str]:
     return urls
 
 
+# Only the LAST extension counts: "invoice.pdf.exe" is really an .exe
 def split_extension(filename: str) -> str:
     """Returns the final extension in lowercase, e.g. 'invoice.pdf.exe' -> 'exe'."""
     if "." not in filename:
@@ -174,10 +181,12 @@ def collect_attachment_metadata() -> list[dict]:
         if error:
             show_error(error)
             continue
+        # Only the name is stored; the file is never opened, so a harmful attachment can't run.
         attachments.append({"filename": filename, "extension": split_extension(filename)})
     return attachments
 
 
+# UTC so times from different laptops and Docker compare correctly in check_campaign(). Shown in SGT by format_timestamp()
 def current_timestamp() -> str:
     """Returns the current UTC time in ISO format, e.g. '2026-09-28T06:05:00+00:00'."""
     return datetime.now(UTC).isoformat(timespec="seconds")
@@ -238,6 +247,7 @@ def format_value(value) -> str:
     """Turns any value into display text based on its type, not on its field name."""
     if value is None:
         return "unknown"
+    # Checked early so True/False show as YES/no instead of "True"/"False"
     if isinstance(value, bool):
         return "YES" if value else "no"
     if isinstance(value, dict):
@@ -270,6 +280,7 @@ def format_timestamp(value) -> str:
 def build_result_lines(record: dict, ai_result: dict | None, severity: str,
                        action: str, is_campaign: bool = False) -> list[str]:
     """Builds the screening result from the record, whatever fields the AI returned, and logic's decision."""
+    # Shows whatever fields the AI returned (no fixed list), so a renamed AI field still displays.
     ai_fields = list(ai_result.items()) if isinstance(ai_result, dict) and ai_result else [("ai_result", None)]
     sections = [
         [
@@ -285,8 +296,10 @@ def build_result_lines(record: dict, ai_result: dict | None, severity: str,
         ],
     ]
 
+    # Longest label + 2 spaces, so every value starts in the same column.
     label_width = max(len(format_label(key)) for section in sections for key, _ in section) + 2
     blocks = [format_section(section, label_width) for section in sections]
+    # Divider lines are as wide as the longest line.
     width = max(len(line) for block in blocks for line in block)
 
     lines = ["=" * width, "SCREENING RESULT", "=" * width]
@@ -317,6 +330,7 @@ def format_error_message(source: str, problem: str, next_step: str = "") -> str:
 
 def display_error(source: str, problem: str, next_step: str = "") -> None:
     """Prints an error from any layer; the caller supplies the problem and what happens next."""
+    # Clear the loading dots first, so the message gets its own line.
     with loading_lock:
         clear_loading_line()
         print(format_error_message(source, problem, next_step))
@@ -397,13 +411,16 @@ def display_report_list(reports: list[dict], severity: str) -> None:
 
 # --- Loading animation ---
 LOADING_INTERVAL = 0.4
+# How wide the dots line on screen is (0 = nothing shown).
 loading_state = {"width": 0}
+# Stops the dots thread and an error message from printing at the same moment.
 loading_lock = threading.Lock()
 
 
 def clear_loading_line() -> None:
     """Wipes the loading line so the next output starts on a clean line."""
     if loading_state["width"]:
+        # \r jumps back to the start of the line; the spaces overwrite the old dots.
         print("\r" + " " * loading_state["width"] + "\r", end="", flush=True)
         loading_state["width"] = 0
 
@@ -412,12 +429,14 @@ def animate_loading(message: str, stop: threading.Event) -> None:
     """Shows 'message.', 'message..', 'message...' in turn until stop is set (runs in a background thread)."""
     dots = 1
     while True:
+        # :<3 pads to 3 characters, so going from "..." back to "." leaves no leftover dots.
         line = f"{message}{'.' * dots:<3}"
         with loading_lock:
             print("\r" + line, end="", flush=True)
             loading_state["width"] = len(line)
         if stop.wait(LOADING_INTERVAL):
             break
+        # Cycles 1 -> 2 -> 3 -> 1 ...
         dots = dots % 3 + 1
     with loading_lock:
         clear_loading_line()
