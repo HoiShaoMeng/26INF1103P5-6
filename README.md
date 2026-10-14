@@ -16,6 +16,7 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 - [Features](#features)
 - [Usage](#usage)
 - [Architecture](#architecture)
+- [Program Flow](#program-flow)
 - [Setup](#setup)
 
 
@@ -181,6 +182,16 @@ L --> OUT[I/O Manager\ndisplay result]
 | Logic | `src/logic/logic_manager.py` | Campaign detection, severity rules and the recommended action |
 | Data | `src/data/data_manager.py` | Loads and saves ai response to `data/reports.json`
 
+## Program Flow
+
+**How one email moves through the program**
+
+1. **I/O**: collects the email fields and validates each one (re-prompts for invalid inputs), then adds a UTC `reported_at` timestamp
+2. **AI**: receives only the email content (no timestamp), sends it with the built system prompt, and returns a validated dict: `classification`, `threat_level`, `tactics_detected`, `suspicious_urls`, `suspicious_attachment`, `sender_domain_mismatch`. If the AI cannot give a valid answer it returns `AI_UNAVAILABLE` placeholder instead
+3. **Data**: loads the saved report history
+4. **Logic**: checks the history for a campaign, decides the severity and picks the recommended action
+5. **Data**: combines the email, AI ouput and decision into one flat record and saves the full history
+6. **I/O**: displays the result of the screening
 
 ## Setup
 
