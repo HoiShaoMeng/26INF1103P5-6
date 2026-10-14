@@ -197,7 +197,7 @@ def has_valid_tactics(response_dict: dict, tactics_vocabulary: list) -> bool:
         return False
     return True
 
-def is_boolean(value: any) -> bool:
+def is_boolean(value: object) -> bool:
     """Checks whether the value is a boolean.
 
     Args:
@@ -318,6 +318,7 @@ def send_request(system: str, user: str, config: dict) -> any | None:
                 ],
                 stream=False,
                 temperature=temperature,
+                timeout_ms=30000,  # 30 seconds
             )
             error = getattr(res, "error", None)
             if error:
