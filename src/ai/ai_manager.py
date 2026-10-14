@@ -197,7 +197,7 @@ def has_valid_tactics(response_dict: dict, tactics_vocabulary: list) -> bool:
         return False
     return True
 
-def is_boolean(value: any) -> bool:
+def is_boolean(value: object) -> bool:
     """Checks whether the value is a boolean.
 
     Args:
