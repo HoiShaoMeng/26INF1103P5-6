@@ -26,12 +26,12 @@ def screen_one_email():
     user_prompt = ai_manager.build_user_prompt(ai_input)
     
     # step 7 (ai, ping xuan)
-    response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, config)
+    response_dict = io_manager.run_with_loading("Analysing email with AI", ai_manager.ai_workflow, system_prompt, user_prompt, config)
     for attempt in range(1, MAX_RETRIES + 1):  # retry up to 3 times if AI is unavailable
         if response_dict["classification"] != ai_manager.AI_UNAVAILABLE:
             break
         io_manager.display_error("AI", f"Retrying AI request ({attempt}/{MAX_RETRIES})...")
-        response_dict = ai_manager.ai_workflow(system_prompt, user_prompt, config)
+        response_dict = io_manager.run_with_loading("Analysing email with AI", ai_manager.ai_workflow, system_prompt, user_prompt, config)
     
     #step 8 (data, jeremy): load the saved report history
     history = data_manager.read_file()
