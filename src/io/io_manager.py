@@ -1,41 +1,13 @@
 """io_manager: collects and validates reported-email input from the terminal."""
 
-import re
 import sys
 import threading
 from datetime import UTC, datetime, timedelta, timezone
-from urllib.parse import urlparse
 
-# Text@text.text with no spaces: a quick sanity check.
-EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+from input_validator import InputValidator
 
-
-# --- Expected input types ---
-# One rule per record field: what it holds, if it is required, its maximum length,
-# and (optionally) which format check it must pass. All input validation reads from here.
-INPUT_RULES = {
-    "sender_email": {"label": "Sender email", "type": "email address", "required": True,
-                     "max_length": 254, "format": "email", "hint": "e.g. name@domain.com"},
-    "sender_name": {"label": "Sender display name", "type": "text", "required": False,
-                    "max_length": 100},
-    "subject": {"label": "Subject", "type": "text", "required": True, "max_length": 200},
-    "body": {"label": "Body text", "type": "multi-line text", "required": True,
-             "max_length": 10000},
-    "urls": {"label": "URL", "type": "http/https link", "required": False,
-             "max_length": 2048, "format": "url",
-             "hint": "must start with http:// or https:// and include a domain"},
-    "attachments": {"label": "Attachment filename", "type": "filename", "required": False,
-                    "max_length": 255, "format": "filename",
-                    "hint": "enter a filename only, e.g. invoice.pdf"},
-}
-
-
-def describe_expected_input(field: str) -> str:
-    """Returns what a field expects, e.g. 'text, required, max 200 characters'."""
-    rule = INPUT_RULES[field]
-    required = "required" if rule["required"] else "optional"
-    return f"{rule['type']}, {required}, max {rule['max_length']} characters"
-
+# One validator shared by every prompt in this file.
+validator = InputValidator()
 
 def read_line(prompt: str) -> str:
     """Reads one line from the user, stripped off surrounding whitespace."""
@@ -49,52 +21,11 @@ def show_error(message: str) -> None:
         print(f"  [!] {message}")
 
 
-def is_non_empty(value: str) -> bool:
-    """Returns True if the value contains at least one non-space character."""
-    return value.strip() != ""
-
-
-def is_valid_email(value: str) -> bool:
-    """Returns True if the value looks like name@domain.tld."""
-    return EMAIL_PATTERN.match(value) is not None
-
-
-def is_valid_url(value: str) -> bool:
-    """Returns True if the value is an http/https link with a domain."""
-    parts = urlparse(value)
-    return parts.scheme in ("http", "https") and parts.netloc != ""
-
-
-# A "/" or "\" (or "." / "..") means the user typed a folder path, not a filename.
-def is_valid_filename(value: str) -> bool:
-    """Returns True if the value is a plain filename, not empty and not a folder path."""
-    name = value.strip()
-    return name not in ("", ".", "..") and "/" not in name and "\\" not in name
-
-
-# Links a rule's "format" in INPUT_RULES to the function that checks it.
-FORMAT_CHECKS = {"email": is_valid_email, "url": is_valid_url, "filename": is_valid_filename}
-
-
-def get_input_error(field: str, value: str) -> str | None:
-    """Checks a value against its rule in INPUT_RULES; returns an error message, or None if valid."""
-    rule = INPUT_RULES[field]
-    # Checks run in order: empty, then too long, then wrong format. An empty optional field is allowed.
-    if not is_non_empty(value):
-        return f"{rule['label']} is required." if rule["required"] else None
-    if len(value) > rule["max_length"]:
-        return f"{rule['label']} is too long (max {rule['max_length']} characters)."
-    check = FORMAT_CHECKS.get(rule.get("format"))
-    if check and not check(value):
-        return f"Invalid {rule['label'].lower()}: {rule['hint']}."
-    return None
-
-
 def prompt_field(prompt: str, field: str) -> str:
     """Re-prompts until the value passes the field's rule in INPUT_RULES."""
     while True:
         value = read_line(prompt)
-        error = get_input_error(field, value)
+        error = validator.get_error(field, value)
         if error is None:
             return value
         show_error(error)
@@ -132,7 +63,7 @@ def collect_multiline_body() -> str:
                 break
             lines.append(line.rstrip())
         body = "\n".join(lines).strip()
-        error = get_input_error("body", body)
+        error = validator.get_error("body", body)
         if error is None:
             return body
         show_error(error)
@@ -148,7 +79,7 @@ def collect_urls() -> list[str]:
         url = read_line("  URL: ")
         if url == "":
             break
-        error = get_input_error("urls", url)
+        error = validator.get_error("urls", url)
         if error:
             show_error(error)
             continue
@@ -177,7 +108,7 @@ def collect_attachment_metadata() -> list[dict]:
         filename = read_line("  Filename: ")
         if filename == "":
             break
-        error = get_input_error("attachments", filename)
+        error = validator.get_error("attachments", filename)
         if error:
             show_error(error)
             continue
