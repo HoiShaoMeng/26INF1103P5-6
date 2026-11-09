@@ -54,8 +54,7 @@ class CampaignDetector:
         # If fewer than 3 related reports were found, no campaign is detected. 
         return False
 
-def check_campaign(current_report: dict, previous_reports: list) -> bool:
-    return CampaignDetector().check_campaign(current_report, previous_reports)
+
 
 #threat_level band boundaries, this is the PRIMARY driver of severity, tactics never gate these bands
 THREAT_LEVEL_CRITICAL_THRESHOLD = 80
