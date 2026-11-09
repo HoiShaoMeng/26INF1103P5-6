@@ -11,11 +11,13 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "logic"))
 
 from logic_manager import (  # type: ignore
-    check_campaign,
+    CampaignDetector,
     classify_severity,
     generate_recommended_action,
     is_ai_unavailable,
 )
+
+campaign_detector = CampaignDetector()
 
 
 # compares what the code returned with what we expected, prints both so you can see it working, then asserts
@@ -148,7 +150,7 @@ def test_check_campaign_true_for_three_reports_same_sender():
     ]
     check(
         "3 reports, same sender, within 2 hours",
-        check_campaign(current_report, previous_reports),
+        campaign_detector.check_campaign(current_report, previous_reports),
         True,
     )
 
@@ -164,7 +166,7 @@ def test_check_campaign_false_for_only_two_reports():
     ]
     check(
         "only 2 reports, same sender",
-        check_campaign(current_report, previous_reports),
+        campaign_detector.check_campaign(current_report, previous_reports),
         False,
     )
 
@@ -271,7 +273,7 @@ def test_check_campaign_true_for_same_domain_different_senders():
     ]
     check(
         "ceo@, hr@, it@ at evil.com",
-        check_campaign(current_report, previous_reports),
+        campaign_detector.check_campaign(current_report, previous_reports),
         True,
     )
 
@@ -288,7 +290,7 @@ def test_check_campaign_ignores_reports_older_than_24_hours():
     ]
     check(
         "3rd report is 2 days old",
-        check_campaign(current_report, previous_reports),
+        campaign_detector.check_campaign(current_report, previous_reports),
         False,
     )
 
@@ -311,8 +313,39 @@ def test_check_campaign_works_with_utc_timestamps():
     ]
     check(
         "3 reports with +00:00 timestamps",
-        check_campaign(current_report, previous_reports),
+        campaign_detector.check_campaign(current_report, previous_reports),
         True,
+    )
+
+def test_check_campaign_counts_report_exactly_24_hours_old():
+    current_report = {
+        "sender_email": "alerts@example.com",
+        "reported_at": "2026-11-09T12:00:00+00:00",
+    }
+    previous_reports = [
+        {"sender_email": "first@example.com", "reported_at": "2026-11-08T12:00:00+00:00"},
+        {"sender_email": "second@example.com", "reported_at": "2026-11-09T11:00:00+00:00"},
+    ]
+    check(
+        "a matching report exactly 24 hours old counts",
+        campaign_detector.check_campaign(current_report, previous_reports),
+        True,
+    )
+
+
+def test_check_campaign_ignores_future_report():
+    current_report = {
+        "sender_email": "alerts@example.com",
+        "reported_at": "2026-11-09T12:00:00+00:00",
+    }
+    previous_reports = [
+        {"sender_email": "first@example.com", "reported_at": "2026-11-09T11:00:00+00:00"},
+        {"sender_email": "second@example.com", "reported_at": "2026-11-09T12:01:00+00:00"},
+    ]
+    check(
+        "a matching report in the future does not count",
+        campaign_detector.check_campaign(current_report, previous_reports),
+        False,
     )
 
 
@@ -338,6 +371,8 @@ ALL_TESTS = [
     test_check_campaign_true_for_same_domain_different_senders,
     test_check_campaign_ignores_reports_older_than_24_hours,
     test_check_campaign_works_with_utc_timestamps,
+    test_check_campaign_counts_report_exactly_24_hours_old,
+    test_check_campaign_ignores_future_report,
 ]
 
 
