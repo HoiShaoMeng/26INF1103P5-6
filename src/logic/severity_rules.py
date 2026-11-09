@@ -98,3 +98,24 @@ class ThreatBandRule(SeverityRule):
         if not isinstance(threat_level, (int, float)):
             threat_level = 0  #missing/bad data should never crash the pipeline
         return threat_level >= self._min_level
+
+
+#rule B: 2+ tactics detected together suggests a deliberate attack, so bump the severity up one tier.
+#not a SeverityRule: it does not pick a severity, it adjusts one that a rule already picked.
+class MultiTacticEscalation:
+
+    def __init__(self, min_tactics: int = 2):
+        self._min_tactics = min_tactics
+
+    #read-only access to how many tactics are needed before escalating
+    @property
+    def min_tactics(self) -> int:
+        return self._min_tactics
+
+    def adjust(self, ai_output: dict, severity: Severity) -> Severity:
+        tactics_detected = ai_output.get("tactics_detected") or []
+        #Severity(...) also accepts a plain string like "NEEDS_REVIEW" and turns it into the enum member
+        severity = Severity(severity)
+        if len(tactics_detected) >= self._min_tactics:
+            return severity.escalate()
+        return severity
