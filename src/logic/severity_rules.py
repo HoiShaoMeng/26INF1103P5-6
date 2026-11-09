@@ -64,3 +64,17 @@ class CampaignRule(SeverityRule):
 
     def matches(self, ai_output: dict, is_campaign: bool) -> bool:
         return bool(is_campaign)
+
+
+#rule A: sender domain mismatch + real evidence (a suspicious link or attachment) is CRITICAL outright,
+#no matter what threat_level the AI gave. this is the multi-condition rule using two AI fields.
+class DomainMismatchEvidenceRule(SeverityRule):
+
+    def __init__(self):
+        super().__init__(Severity.CRITICAL)
+
+    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+        sender_domain_mismatch = bool(ai_output.get("sender_domain_mismatch"))
+        has_suspicious_urls = bool(ai_output.get("suspicious_urls"))
+        has_suspicious_attachments = bool(ai_output.get("suspicious_attachments"))
+        return sender_domain_mismatch and (has_suspicious_urls or has_suspicious_attachments)
