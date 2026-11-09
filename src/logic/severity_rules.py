@@ -40,3 +40,27 @@ class SeverityRule(ABC):
         if self.matches(ai_output, is_campaign):
             return self._severity
         return None
+
+
+#fail-safe: if ai_manager could not get a real AI response it returns the AI_UNAVAILABLE placeholder.
+#this must be checked first so a failed AI call is never mistaken for a safe email.
+class AiUnavailableRule(SeverityRule):
+    UNAVAILABLE_CLASSIFICATION = "AI_UNAVAILABLE"
+
+    def __init__(self):
+        super().__init__(Severity.NEEDS_REVIEW)
+
+    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+        if not isinstance(ai_output, dict):
+            return False
+        return ai_output.get("classification") == self.UNAVAILABLE_CLASSIFICATION
+
+#rule C: a detected campaign (3+ reports from the same sender/domain within 24h) is CRITICAL outright
+#is_campaign comes from the campaign check, this rule only acts on the result
+class CampaignRule(SeverityRule):
+
+    def __init__(self):
+        super().__init__(Severity.CRITICAL)
+
+    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+        return bool(is_campaign)
