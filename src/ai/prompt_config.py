@@ -1,7 +1,7 @@
 """prompt_config: loads and checks the AI prompt configuration from prompt_config.yaml"""
 
-import os
 import copy
+import os
 
 import yaml
 
