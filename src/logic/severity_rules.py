@@ -1,5 +1,5 @@
 """severity_rules: the business rules that decide how serious a reported email is."""
-
+from abc import ABC, abstractmethod
 from enum import StrEnum
 
 
@@ -15,3 +15,28 @@ class Severity(StrEnum):
         order = list(Severity)
         next_index = min(order.index(self) + 1, len(order) - 1)
         return order[next_index]
+
+
+#abstract base class for every severity rule: a rule checks one condition and gives one severity if it matches.
+#the classifier only talks to this base type, so a new rule can be added without changing the classifier.
+class SeverityRule(ABC):
+
+    def __init__(self, severity: Severity):
+        #protected: subclasses set it once through super().__init__(), outside code can only read it
+        self._severity = severity
+
+    #read-only access to the severity this rule gives
+    @property
+    def severity(self) -> Severity:
+        return self._severity
+
+    #every subclass must decide when it matches, python will not create a subclass that skips this
+    @abstractmethod
+    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+        pass
+
+    #shared behaviour for all rules: gives this rule's severity if it matches, or None if it does not
+    def apply(self, ai_output: dict, is_campaign: bool) -> Severity | None:
+        if self.matches(ai_output, is_campaign):
+            return self._severity
+        return None
