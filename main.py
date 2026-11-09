@@ -37,7 +37,8 @@ def screen_one_email():
     history = data_manager.read_file()
 
     #step 9 (logic, jeremy): campaign check, must run before the new report is added to history
-    is_campaign = logic_manager.check_campaign(report_dict, history)
+    campaign_detector = logic_manager.CampaignDetector()
+    is_campaign = campaign_detector.check_campaign(report_dict, history)
 
     #step 10, 11 (logic, shao): decide the severity, pass the real campaign result, never a hard-coded False
     severity = logic_manager.classify_severity(response_dict, is_campaign=is_campaign)
