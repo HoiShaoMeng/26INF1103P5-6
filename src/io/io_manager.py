@@ -5,6 +5,7 @@ import threading
 from datetime import UTC, datetime, timedelta, timezone
 
 from input_validator import InputValidator
+from menu_prompt import MenuPrompt
 
 # One validator shared by every prompt in this file.
 validator = InputValidator()
@@ -273,26 +274,14 @@ MENU_OPTIONS = {"1": "Screen a new email", "2": "View saved reports by severity"
 # Must match the severities logic_manager returns and data_manager saves.
 SEVERITY_OPTIONS = {"1": "CRITICAL", "2": "NEEDS_REVIEW", "3": "LOG_ONLY"}
 
-def prompt_choice(title: str, options: dict[str, str]) -> str:
-    """Shows numbered options and re-prompts until the user picks one. Returns the chosen number, e.g. '2'."""
-    print()
-    print(f"=== {title} ===")
-    for number, label in options.items():
-        print(f"  {number}. {label}")
-    while True:
-        choice = read_line("Choose an option: ")
-        if choice in options:
-            return choice
-        show_error(f"Please enter one of: {', '.join(options)}.")
 
 def prompt_menu_choice() -> str:
     """Shows the main menu and returns '1' (screen), '2' (view reports) or '3' (exit)."""
-    return prompt_choice("Phishing Triage Assistant", MENU_OPTIONS)
+    return MenuPrompt("Phishing Triage Assistant", MENU_OPTIONS, read_line, show_error).ask()
 
 def prompt_severity_choice() -> str:
     """Asks which severity to view and returns it in the saved form, e.g. 'NEEDS_REVIEW'."""
-    return SEVERITY_OPTIONS[prompt_choice("View saved reports", SEVERITY_OPTIONS)]
-
+    return MenuPrompt("View saved reports", SEVERITY_OPTIONS, read_line, show_error).ask_label()
 REPORT_LIST_WIDTH = 64
 
 def build_report_list_lines(reports: list[dict], severity: str) -> list[str]:
