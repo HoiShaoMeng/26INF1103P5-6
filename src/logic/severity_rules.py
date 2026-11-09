@@ -78,3 +78,23 @@ class DomainMismatchEvidenceRule(SeverityRule):
         has_suspicious_urls = bool(ai_output.get("suspicious_urls"))
         has_suspicious_attachments = bool(ai_output.get("suspicious_attachments"))
         return sender_domain_mismatch and (has_suspicious_urls or has_suspicious_attachments)
+
+
+#base band: matches when the AI's threat_level is at or above min_level.
+#one class, many objects: e.g. ThreatBandRule(80, CRITICAL) and ThreatBandRule(50, NEEDS_REVIEW)
+class ThreatBandRule(SeverityRule):
+
+    def __init__(self, min_level: int, severity: Severity):
+        super().__init__(severity)
+        self._min_level = min_level
+
+    #read-only access to the lowest threat_level that matches this band
+    @property
+    def min_level(self) -> int:
+        return self._min_level
+
+    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+        threat_level = ai_output.get("threat_level")
+        if not isinstance(threat_level, (int, float)):
+            threat_level = 0  #missing/bad data should never crash the pipeline
+        return threat_level >= self._min_level
