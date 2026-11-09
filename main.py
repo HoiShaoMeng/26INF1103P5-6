@@ -44,7 +44,8 @@ def screen_one_email():
     severity = logic_manager.classify_severity(response_dict, is_campaign=is_campaign)
 
     #step 12 (logic, jeremy): turn the severity into the action text
-    recommended_action = logic_manager.generate_recommended_action(severity)
+    action_recommender = logic_manager.ActionRecommender()
+    recommended_action = action_recommender.generate_recommended_action(severity)
 
     #step 12 (data, shao): pack everything into one report, {} means it cannot be saved
     new_report = data_manager.format_report(report_dict, response_dict, is_campaign, severity, recommended_action)
