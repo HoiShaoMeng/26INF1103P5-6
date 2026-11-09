@@ -18,6 +18,7 @@ from severity_rules import (  # type: ignore
     ThreatBandRule,
 )
 
+
 # --- Severity ---
 def test_severity_values_are_the_saved_strings():
     assert Severity.CRITICAL == "CRITICAL"
