@@ -116,6 +116,4 @@ class ActionRecommender:
         # Fallback for any unexpected severity value:
         # send it for manual review instead of taking an unsafe automatic action.
         return "Unknown severity. Manual review required."
-    
-def generate_recommended_action(severity: str) -> str:
-    return ActionRecommender().generate_recommended_action(severity)
+

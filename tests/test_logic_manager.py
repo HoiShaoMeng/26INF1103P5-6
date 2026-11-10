@@ -13,11 +13,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "logic")
 from logic_manager import (  # type: ignore
     CampaignDetector,
     SeverityClassifier,
-    generate_recommended_action,
+    	ActionRecommender,
 )
 from severity_rules import AiUnavailableRule  # type: ignore
 
 campaign_detector = CampaignDetector()
+action_recommender = ActionRecommender()
 classifier = SeverityClassifier()
 ai_unavailable_rule = AiUnavailableRule()
 
@@ -228,25 +229,25 @@ def test_classify_severity_non_dict_ai_output_returns_needs_review():
 def test_generate_recommended_action_for_each_severity():
     check(
         "CRITICAL",
-        generate_recommended_action("CRITICAL"),
+        action_recommender.generate_recommended_action("CRITICAL"),
         "Block sender domain and alert all users.",
     )
     check(
         "NEEDS_REVIEW",
-        generate_recommended_action("NEEDS_REVIEW"),
+        action_recommender.generate_recommended_action("NEEDS_REVIEW"),
         "Perform a manual check within 24 hours.",
     )
     check(
         "LOG_ONLY",
-        generate_recommended_action("LOG_ONLY"),
+        action_recommender.generate_recommended_action("LOG_ONLY"),
         "Archive the report. No further action required.",
     )
 
-# test case: an unexpected severity falls back to a manual review instead of an unsafe action
+
 def test_generate_recommended_action_unknown_severity_falls_back_to_manual_review():
     check(
         "unknown severity HIGH",
-        generate_recommended_action("HIGH"),
+        action_recommender.generate_recommended_action("HIGH"),
         "Unknown severity. Manual review required.",
     )
 
