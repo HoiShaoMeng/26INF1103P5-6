@@ -1,15 +1,14 @@
 from datetime import datetime, timedelta
 
+from severity_rules import (
+    AiUnavailableRule,
+    CampaignRule,
+    DomainMismatchEvidenceRule,
+    MultiTacticEscalation,
+    Severity,
+    ThreatBandRule,
+)
 
-#fail safe check: True if ai_manager cant get a real AI response and returned the AI_UNAVAILABLE placeholder instead.
-#classify_severity() must run this first so a failed AI call never gets mistaken for a "safe" email.
-#FIRST area to coordinate with AI team, make sure that AI is made to return AI_UNAVAILABLE if it fails to classify a report. 
-def is_ai_unavailable(ai_output: dict) -> bool:
-
-    if not isinstance(ai_output, dict):
-        return False
-
-    return ai_output.get("classification") == "AI_UNAVAILABLE"
 
 #campaign detection: True = 3+ reports from the same sender/domain within 24 hours, treat as a coordinated attack.
 #each report dict needs "sender_email" and "reported_at" (ISO format, e.g. 2026-09-25T14:00:00).
@@ -54,75 +53,45 @@ class CampaignDetector:
         # If fewer than 3 related reports were found, no campaign is detected. 
         return False
 
+#decides the severity for one AI-enriched report by running the severity rules in a fixed order.
+#composition: the classifier creates and owns its rules in __init__, they only exist inside this object.
+class SeverityClassifier:
 
+    def __init__(self, critical_threshold: int = 80, needs_review_threshold: int = 50, min_tactics: int = 2):
+        #override rules: checked in order, the first one that matches decides the severity straight away
+        self._override_rules = [
+            AiUnavailableRule(),           #fail-safe, always first so a failed AI call is never treated as safe
+            CampaignRule(),                #rule C
+            DomainMismatchEvidenceRule(),  #rule A
+        ]
+        #threat bands: highest band first, LOG_ONLY is the default when threat_level is below every band
+        self._band_rules = [
+            ThreatBandRule(critical_threshold, Severity.CRITICAL),
+            ThreatBandRule(needs_review_threshold, Severity.NEEDS_REVIEW),
+        ]
+        #rule B: runs last and can bump the band result up one tier
+        self._escalation = MultiTacticEscalation(min_tactics)
 
-#threat_level band boundaries, this is the PRIMARY driver of severity, tactics never gate these bands
-THREAT_LEVEL_CRITICAL_THRESHOLD = 80
-THREAT_LEVEL_NEEDS_REVIEW_MIN = 50
+    def classify(self, ai_output: dict, is_campaign: bool = False) -> Severity:
+        #no AI output at all is treated like a failed AI call, it must never crash or be called safe
+        if not isinstance(ai_output, dict):
+            return Severity.NEEDS_REVIEW
 
-#minimum number of distinct tactics detected at once before we treat it as a coordinated, deliberate attack
-MULTI_TACTIC_ESCALATION_COUNT = 2
+        override = self._first_match(self._override_rules, ai_output, is_campaign)
+        if override is not None:
+            return override
 
-#the three possible outcomes classify_severity() can return, also used as an ordered scale for escalation
-SEVERITY_CRITICAL = "CRITICAL"
-SEVERITY_NEEDS_REVIEW = "NEEDS_REVIEW"
-SEVERITY_LOG_ONLY = "LOG_ONLY"
+        severity = self._first_match(self._band_rules, ai_output, is_campaign) or Severity.LOG_ONLY
+        return self._escalation.adjust(ai_output, severity)
 
-#just a list (index: 0, 1, 2) to let us bump a severity up by exactly one tier without a big if/elif chain
-SEVERITY_ESCALATION_ORDER = [SEVERITY_LOG_ONLY, SEVERITY_NEEDS_REVIEW, SEVERITY_CRITICAL]
-
-#bumps a severity one step up the scale, already-CRITICAL stays CRITICAL, doesnt go out of bounds
-#finds the position of the current severity in the list. E.g. "NEEDS_REVIEW" is at index 1.
-def _escalate_one_tier(severity: str) -> str:
-    current_index = SEVERITY_ESCALATION_ORDER.index(severity)
-    next_index = min(current_index + 1, len(SEVERITY_ESCALATION_ORDER) - 1)
-    return SEVERITY_ESCALATION_ORDER[next_index]
-
-#decides severity for one AI-enriched report.
-#is_campaign is optional: pass True if check_campaign() already returned True for this report,
-#leave it as the default False if there is no report history to compare against yet.
-def classify_severity(ai_output: dict, is_campaign: bool=False) -> str:
-
-    #fail-safe, always checked first, so a failed AI call never gets treated as safe
-    #if the ai manager failed to get a real response, we will flag it NEEDS_REVIEW as we do not want to auto-approve a report that the AI could not classify.
-    if is_ai_unavailable(ai_output):
-        return SEVERITY_NEEDS_REVIEW
-
-    #rule C: a detected campaign (3+ reports from the same sender/domain within 24h) is CRITICAL outright, regardless of threat_level, tactics, or anything else, per check_campaign()'s contract
-    #we will immediately flag the report as CRITICAL if check_campaign() returned True
-    if is_campaign:
-        return SEVERITY_CRITICAL
-
-    #pull out relavent fields from the AI output, using .get() to avoid keyerror if a field is missing
-    tactics_detected = ai_output.get("tactics_detected") or []
-    suspicious_urls = ai_output.get("suspicious_urls") or []
-    suspicious_attachments = ai_output.get("suspicious_attachments") or []
-    sender_domain_mismatch = bool(ai_output.get("sender_domain_mismatch"))
-
-    threat_level = ai_output.get("threat_level")
-    if not isinstance(threat_level, (int, float)):
-        threat_level = 0  #missing/bad data should never crash the pipeline
-
-    #rule A: domain mismatch + real evidence (a link or attachment) is CRITICAL outright, no matter what
-    #the AI called the tactic, or what threat_level said, this combo alone is dangerous enough on its own
-    has_suspicious_evidence = bool(suspicious_urls) or bool(suspicious_attachments)
-    if sender_domain_mismatch and has_suspicious_evidence:
-        return SEVERITY_CRITICAL
-
-    #checks threat_level against the thresholds, and sets severity accordingly. 
-    #This is severity is determined by the AI's threat_level alone, without any other signals. The other rules can escalate it  if needed.
-    if threat_level >= THREAT_LEVEL_CRITICAL_THRESHOLD:
-        severity = SEVERITY_CRITICAL
-    elif threat_level >= THREAT_LEVEL_NEEDS_REVIEW_MIN:
-        severity = SEVERITY_NEEDS_REVIEW
-    else:
-        severity = SEVERITY_LOG_ONLY
-
-    #rule B: 2+ distinct tactics stacked together suggests a coordinated attack, escalate one tier as a safety net
-    if len(tactics_detected) >= MULTI_TACTIC_ESCALATION_COUNT:
-        severity = _escalate_one_tier(severity)
-
-    return severity
+    #polymorphism: every rule is called through the same apply(), the classifier never checks which rule it is
+    #private helper: gives the severity of the first rule that matches, or None if none match
+    def _first_match(self, rules: list, ai_output: dict, is_campaign: bool) -> Severity | None:
+        for rule in rules:
+            severity = rule.apply(ai_output, is_campaign)
+            if severity is not None:
+                return severity
+        return None
 
 # Generates the recommended action based on the final severity level.
 # Each severity has a fixed action so the IT team knows what to do next.
@@ -131,17 +100,17 @@ class ActionRecommender:
         
         # CRITICAL threats require immediate action:
         # block the sender domain and warn all users.
-        if severity == SEVERITY_CRITICAL:
+        if severity == Severity.CRITICAL:
             return "Block sender domain and alert all users."
 
         # NEEDS_REVIEW threats are suspicious but not urgent enough to block immediately,
         # so the IT team should manually review them within 24 hours.
-        elif severity == SEVERITY_NEEDS_REVIEW:
+        elif severity == Severity.NEEDS_REVIEW:
             return "Perform a manual check within 24 hours."
 
         # LOG_ONLY reports are low-risk, so they are archived
         # and no immediate action is required.
-        elif severity == SEVERITY_LOG_ONLY:
+        elif severity == Severity.LOG_ONLY:
             return "Archive the report. No further action required."
 
         # Fallback for any unexpected severity value:

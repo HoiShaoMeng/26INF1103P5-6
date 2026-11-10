@@ -41,7 +41,8 @@ def screen_one_email():
     is_campaign = campaign_detector.check_campaign(report_dict, history)
 
     #step 10, 11 (logic, shao): decide the severity, pass the real campaign result, never a hard-coded False
-    severity = logic_manager.classify_severity(response_dict, is_campaign=is_campaign)
+    severity_classifier = logic_manager.SeverityClassifier()
+    severity = severity_classifier.classify(response_dict, is_campaign=is_campaign)
 
     #step 12 (logic, jeremy): turn the severity into the action text
     action_recommender = logic_manager.ActionRecommender()
@@ -83,7 +84,6 @@ def view_reports_by_severity():
 
     #io: show the matching reports, or a message if there are none
     io_manager.display_report_list(matching_reports, severity)
-
 
 #shows the menu until the user chooses exit
 def main():
