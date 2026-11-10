@@ -1,5 +1,5 @@
 # ONLY FOR TESTING!
-# hard coded test cases for logic_manager.py, every ai_output below is a fake dict, no AI API calls.
+# hard coded test cases for logic_manager.py and severity_rules.py, every ai_output below is a fake dict, no AI API calls.
 # run every test:              python tests/test_logic_manager.py
 # run only some tests:         python tests/test_logic_manager.py campaign
 # (the word is matched against the test names, e.g. campaign, boundary, action, unavailable, rule_b, xyz)
@@ -12,20 +12,23 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "logic")
 
 from logic_manager import (  # type: ignore
     CampaignDetector,
-    classify_severity,
+    SeverityClassifier,
     generate_recommended_action,
-    is_ai_unavailable,
 )
+from severity_rules import AiUnavailableRule  # type: ignore
 
 campaign_detector = CampaignDetector()
-
+classifier = SeverityClassifier()
+ai_unavailable_rule = AiUnavailableRule()
 
 # compares what the code returned with what we expected, prints both so you can see it working, then asserts
 def check(description, actual, expected):
+    #Severity members are also strings, str() turns them into plain text so the output shows 'CRITICAL'
+    if isinstance(actual, str):
+        actual = str(actual)
     result = "ok  " if actual == expected else "FAIL"
     print(f"   {result} {description}: got {actual!r}, expected {expected!r}")
     assert actual == expected
-
 
 # test case: a properly formed AI_UNAVAILABLE placeholder should be detected as unavailable
 def test_is_ai_unavailable_true_when_classification_matches():
@@ -34,8 +37,7 @@ def test_is_ai_unavailable_true_when_classification_matches():
         "threat_level": 0,
         "tactics_detected": [],
     }
-    check("classification AI_UNAVAILABLE", is_ai_unavailable(fake_ai_output), True)
-
+    check("classification AI_UNAVAILABLE", ai_unavailable_rule.matches(fake_ai_output, False), True)
 
 # test case: a normal successful AI response should NOT be flagged as unavailable
 def test_is_ai_unavailable_false_for_normal_classification():
@@ -44,14 +46,12 @@ def test_is_ai_unavailable_false_for_normal_classification():
         "threat_level": 92,
         "tactics_detected": ["executive_impersonation"],
     }
-    check("classification phishing", is_ai_unavailable(fake_ai_output), False)
+    check("classification phishing", ai_unavailable_rule.matches(fake_ai_output, False), False)
 
-
-# test case: anything that is not a dict (e.g. None) must not crash is_ai_unavailable, it just returns False
+# test case: anything that is not a dict (e.g. None) must not crash the rule, it just returns False
 def test_is_ai_unavailable_false_for_non_dict():
-    check("None instead of a dict", is_ai_unavailable(None), False)
-    check("plain text instead of a dict", is_ai_unavailable("AI_UNAVAILABLE"), False)
-
+    check("None instead of a dict", ai_unavailable_rule.matches(None, False), False)
+    check("plain text instead of a dict", ai_unavailable_rule.matches("AI_UNAVAILABLE", False), False)
 
 # test case: fail-safe must win even when other fields look critical
 def test_classify_severity_ai_unavailable_returns_needs_review():
@@ -63,10 +63,9 @@ def test_classify_severity_ai_unavailable_returns_needs_review():
     }
     check(
         "AI_UNAVAILABLE with threat 95 and a mismatch",
-        classify_severity(fake_ai_output),
+        classifier.classify(fake_ai_output),
         "NEEDS_REVIEW",
     )
-
 
 # test case: threat_level 80+ alone is CRITICAL, no tactics needed
 def test_classify_severity_critical_from_threat_level_alone():
@@ -75,8 +74,7 @@ def test_classify_severity_critical_from_threat_level_alone():
         "threat_level": 85,
         "tactics_detected": [],
     }
-    check("threat 85, no tactics", classify_severity(fake_ai_output), "CRITICAL")
-
+    check("threat 85, no tactics", classifier.classify(fake_ai_output), "CRITICAL")
 
 # test case: threat_level 50-79 alone is NEEDS_REVIEW
 def test_classify_severity_needs_review_from_threat_level_alone():
@@ -85,8 +83,7 @@ def test_classify_severity_needs_review_from_threat_level_alone():
         "threat_level": 65,
         "tactics_detected": [],
     }
-    check("threat 65, no tactics", classify_severity(fake_ai_output), "NEEDS_REVIEW")
-
+    check("threat 65, no tactics", classifier.classify(fake_ai_output), "NEEDS_REVIEW")
 
 # test case: threat_level below 50 alone is LOG_ONLY
 def test_classify_severity_log_only_from_threat_level_alone():
@@ -95,8 +92,7 @@ def test_classify_severity_log_only_from_threat_level_alone():
         "threat_level": 12,
         "tactics_detected": [],
     }
-    check("threat 12, no tactics", classify_severity(fake_ai_output), "LOG_ONLY")
-
+    check("threat 12, no tactics", classifier.classify(fake_ai_output), "LOG_ONLY")
 
 # test case: rule A, domain mismatch + a suspicious url is CRITICAL outright, even with a low threat_level
 def test_classify_severity_rule_a_critical_with_low_threat_level():
@@ -109,10 +105,9 @@ def test_classify_severity_rule_a_critical_with_low_threat_level():
     }
     check(
         "threat 20 + domain mismatch + suspicious url",
-        classify_severity(fake_ai_output),
+        classifier.classify(fake_ai_output),
         "CRITICAL",
     )
-
 
 # test case: rule B, 2+ tactics detected escalates NEEDS_REVIEW up to CRITICAL
 def test_classify_severity_rule_b_escalates_needs_review_to_critical():
@@ -121,8 +116,7 @@ def test_classify_severity_rule_b_escalates_needs_review_to_critical():
         "threat_level": 60,
         "tactics_detected": ["urgency_pressure", "lookalike_domain"],
     }
-    check("threat 60 + 2 tactics", classify_severity(fake_ai_output), "CRITICAL")
-
+    check("threat 60 + 2 tactics", classifier.classify(fake_ai_output), "CRITICAL")
 
 # test case: rule C, is_campaign=True forces CRITICAL even with a very low threat_level and no other signals
 def test_classify_severity_rule_c_campaign_forces_critical():
@@ -133,10 +127,9 @@ def test_classify_severity_rule_c_campaign_forces_critical():
     }
     check(
         "threat 5 + is_campaign True",
-        classify_severity(fake_ai_output, is_campaign=True),
+        classifier.classify(fake_ai_output, is_campaign=True),
         "CRITICAL",
     )
-
 
 # test case: check_campaign, 3 reports (current + 2 previous) from the same sender within 24h -> True
 def test_check_campaign_true_for_three_reports_same_sender():
@@ -154,7 +147,6 @@ def test_check_campaign_true_for_three_reports_same_sender():
         True,
     )
 
-
 # test case: check_campaign, only 2 total reports (current + 1 previous) should NOT count as a campaign
 def test_check_campaign_false_for_only_two_reports():
     current_report = {
@@ -170,42 +162,39 @@ def test_check_campaign_false_for_only_two_reports():
         False,
     )
 
-
 # test case: boundary, exactly 80 is CRITICAL but 79 is only NEEDS_REVIEW
 def test_classify_severity_threat_level_80_boundary():
     check(
         "threat 80",
-        classify_severity(
+        classifier.classify(
             {"classification": "phishing", "threat_level": 80, "tactics_detected": []}
         ),
         "CRITICAL",
     )
     check(
         "threat 79",
-        classify_severity(
+        classifier.classify(
             {"classification": "phishing", "threat_level": 79, "tactics_detected": []}
         ),
         "NEEDS_REVIEW",
     )
 
-
 # test case: boundary, exactly 50 is NEEDS_REVIEW but 49 is only LOG_ONLY
 def test_classify_severity_threat_level_50_boundary():
     check(
         "threat 50",
-        classify_severity(
+        classifier.classify(
             {"classification": "spam", "threat_level": 50, "tactics_detected": []}
         ),
         "NEEDS_REVIEW",
     )
     check(
         "threat 49",
-        classify_severity(
+        classifier.classify(
             {"classification": "spam", "threat_level": 49, "tactics_detected": []}
         ),
         "LOG_ONLY",
     )
-
 
 # test case: a missing threat_level is treated as 0, so it never crashes and falls to LOG_ONLY
 def test_classify_severity_missing_threat_level_is_log_only():
@@ -213,8 +202,7 @@ def test_classify_severity_missing_threat_level_is_log_only():
         "classification": "benign",
         "tactics_detected": [],
     }
-    check("no threat_level field", classify_severity(fake_ai_output), "LOG_ONLY")
-
+    check("no threat_level field", classifier.classify(fake_ai_output), "LOG_ONLY")
 
 # test case: the full placeholder ai_manager returns on failure (threat_level 50) must still give NEEDS_REVIEW
 def test_classify_severity_full_ai_unavailable_placeholder_returns_needs_review():
@@ -228,10 +216,13 @@ def test_classify_severity_full_ai_unavailable_placeholder_returns_needs_review(
     }
     check(
         "ai_manager's real failure placeholder",
-        classify_severity(fake_ai_output),
+        classifier.classify(fake_ai_output),
         "NEEDS_REVIEW",
     )
 
+# test case: no AI output at all (None) must not crash the classifier, it is treated like a failed AI call
+def test_classify_severity_non_dict_ai_output_returns_needs_review():
+    check("None instead of an AI output", classifier.classify(None), "NEEDS_REVIEW")
 
 # test case: each severity gets the action from the spec table
 def test_generate_recommended_action_for_each_severity():
@@ -251,7 +242,6 @@ def test_generate_recommended_action_for_each_severity():
         "Archive the report. No further action required.",
     )
 
-
 # test case: an unexpected severity falls back to a manual review instead of an unsafe action
 def test_generate_recommended_action_unknown_severity_falls_back_to_manual_review():
     check(
@@ -259,7 +249,6 @@ def test_generate_recommended_action_unknown_severity_falls_back_to_manual_revie
         generate_recommended_action("HIGH"),
         "Unknown severity. Manual review required.",
     )
-
 
 # test case: check_campaign, different senders from the same domain still count as a campaign
 def test_check_campaign_true_for_same_domain_different_senders():
@@ -277,7 +266,6 @@ def test_check_campaign_true_for_same_domain_different_senders():
         True,
     )
 
-
 # test case: check_campaign, a report older than 24 hours is not counted
 def test_check_campaign_ignores_reports_older_than_24_hours():
     current_report = {
@@ -293,7 +281,6 @@ def test_check_campaign_ignores_reports_older_than_24_hours():
         campaign_detector.check_campaign(current_report, previous_reports),
         False,
     )
-
 
 # test case: check_campaign works with the UTC timestamps io_manager now saves, e.g. 2026-09-23T10:00:00+00:00
 def test_check_campaign_works_with_utc_timestamps():
@@ -332,7 +319,6 @@ def test_check_campaign_counts_report_exactly_24_hours_old():
         True,
     )
 
-
 def test_check_campaign_ignores_future_report():
     current_report = {
         "sender_email": "alerts@example.com",
@@ -347,7 +333,6 @@ def test_check_campaign_ignores_future_report():
         campaign_detector.check_campaign(current_report, previous_reports),
         False,
     )
-
 
 ALL_TESTS = [
     test_is_ai_unavailable_true_when_classification_matches,
@@ -366,6 +351,7 @@ ALL_TESTS = [
     test_classify_severity_threat_level_50_boundary,
     test_classify_severity_missing_threat_level_is_log_only,
     test_classify_severity_full_ai_unavailable_placeholder_returns_needs_review,
+    test_classify_severity_non_dict_ai_output_returns_needs_review,
     test_generate_recommended_action_for_each_severity,
     test_generate_recommended_action_unknown_severity_falls_back_to_manual_review,
     test_check_campaign_true_for_same_domain_different_senders,
@@ -374,7 +360,6 @@ ALL_TESTS = [
     test_check_campaign_counts_report_exactly_24_hours_old,
     test_check_campaign_ignores_future_report,
 ]
-
 
 # runs every test whose name contains name_filter ("" means all), keeps going after a failure, returns 1 if any failed
 def _run_tests(name_filter):
@@ -402,7 +387,6 @@ def _run_tests(name_filter):
         print("Failed: " + ", ".join(failed))
         return 1
     return 0
-
 
 # runs only when the file is executed directly, e.g. python tests/test_logic_manager.py campaign
 if __name__ == "__main__":
