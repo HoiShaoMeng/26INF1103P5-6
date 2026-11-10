@@ -1,0 +1,4 @@
+{
+    "python.terminal.useEnvFile": true,
+    "python.analysis.extraPaths": ["src/io", "src/ai", "src/logic", "src/data", "src/domain"]
+}
