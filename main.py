@@ -9,6 +9,7 @@ import ai_manager
 import data_manager
 import io_manager
 import logic_manager
+from report_history import ReportHistory
 
 MAX_RETRIES = 3
 
@@ -75,15 +76,14 @@ def view_reports_by_severity():
     #io: ask which severity to view
     severity = io_manager.prompt_severity_choice()
 
-    #(data, shao): load the saved history and keep only the matching reports
-    history = data_manager.read_file()
-    matching_reports = data_manager.filter_by_severity(history, severity)
+    #(data, shao): load the saved reports into one ReportHistory object
+    history = ReportHistory(data_manager.read_file())
 
-    #(data, shao): put the most dangerous reports first
-    matching_reports = data_manager.sort_by_threat_level(matching_reports)
+    #(data, shao): keep only the matching reports, then put the most dangerous first
+    matching_reports = history.filter_by_severity(severity).sort_by_threat_level()
 
     #io: show the matching reports, or a message if there are none
-    io_manager.display_report_list(matching_reports, severity)
+    io_manager.display_report_list(matching_reports.reports, severity)
 
 #shows the menu until the user chooses exit
 def main():
