@@ -1,5 +1,14 @@
 from datetime import datetime, timedelta
 
+from severity_rules import (
+    AiUnavailableRule,
+    CampaignRule,
+    DomainMismatchEvidenceRule,
+    MultiTacticEscalation,
+    Severity,
+    ThreatBandRule,
+)
+
 
 #fail safe check: True if ai_manager cant get a real AI response and returned the AI_UNAVAILABLE placeholder instead.
 #classify_severity() must run this first so a failed AI call never gets mistaken for a "safe" email.
@@ -53,6 +62,47 @@ class CampaignDetector:
                         return True
         # If fewer than 3 related reports were found, no campaign is detected. 
         return False
+    
+#decides the severity for one AI-enriched report by running the severity rules in a fixed order.
+#composition: the classifier creates and owns its rules in __init__, they only exist inside this object.
+class SeverityClassifier:
+
+    def __init__(self, critical_threshold: int = 80, needs_review_threshold: int = 50, min_tactics: int = 2):
+        #override rules: checked in order, the first one that matches decides the severity straight away
+        self._override_rules = [
+            AiUnavailableRule(),           #fail-safe, always first so a failed AI call is never treated as safe
+            CampaignRule(),                #rule C
+            DomainMismatchEvidenceRule(),  #rule A
+        ]
+        #threat bands: highest band first, LOG_ONLY is the default when threat_level is below every band
+        self._band_rules = [
+            ThreatBandRule(critical_threshold, Severity.CRITICAL),
+            ThreatBandRule(needs_review_threshold, Severity.NEEDS_REVIEW),
+        ]
+        #rule B: runs last and can bump the band result up one tier
+        self._escalation = MultiTacticEscalation(min_tactics)
+
+    def classify(self, ai_output: dict, is_campaign: bool = False) -> Severity:
+        #no AI output at all is treated like a failed AI call, it must never crash or be called safe
+        if not isinstance(ai_output, dict):
+            return Severity.NEEDS_REVIEW
+
+        override = self._first_match(self._override_rules, ai_output, is_campaign)
+        if override is not None:
+            return override
+
+        severity = self._first_match(self._band_rules, ai_output, is_campaign) or Severity.LOG_ONLY
+        return self._escalation.adjust(ai_output, severity)
+
+    #polymorphism: every rule is called through the same apply(), the classifier never checks which rule it is
+    #private helper: gives the severity of the first rule that matches, or None if none match
+    def _first_match(self, rules: list, ai_output: dict, is_campaign: bool) -> Severity | None:
+        for rule in rules:
+            severity = rule.apply(ai_output, is_campaign)
+            if severity is not None:
+                return severity
+        return None
+
 
 
 
