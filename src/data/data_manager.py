@@ -2,36 +2,13 @@ import json
 import os
 from pathlib import Path
 
-import io_manager
+from json_report_repository import JsonReportRepository
 
 
-def read_file():
-    #Locate reports.json relative to this python file,
-    #so the program works regardless of the current working directory
-    current_file = Path(__file__)
-    project_dir = current_file.parent.parent.parent
+def read_file() -> list:
+    project_dir = Path(__file__).resolve().parents[2]
     file_path = project_dir / "data" / "reports.json"
-
-    try:
-        #Read and convert the JSON file into python data
-        with open(file_path, "r", encoding="utf-8") as file:
-            data = json.load(file)
-
-        # Ensure the report history is stored as a list.
-        if not isinstance(data, list):
-            io_manager.display_error("Data", "Reports file has an invalid format.")
-            return []
-
-        return data
-
-    except FileNotFoundError:
-        # No existing reports means the report history starts empty.
-        return []
-
-    except json.JSONDecodeError:
-        #Prevent the program from crashing if the JSON file is corrupted/invalid
-        io_manager.display_error("Data", "Invalid JSON format in reports file.")
-        return []
+    return JsonReportRepository(file_path).load_all()
 
 #builds the one flat record that gets saved to reports.json, it only arranges data and never decides anything.
 #sender_email and reported_at stay at the top level because check_campaign() reads them from the saved reports.

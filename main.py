@@ -9,12 +9,19 @@ import ai_manager
 import data_manager
 import io_manager
 import logic_manager
+from json_report_repository import ReportStorageError
 from report_history import ReportHistory
 
 MAX_RETRIES = 3
 
 #menu option 1: screen one reported email from input to saved result
 def screen_one_email():
+    try:
+        history = data_manager.read_file()
+    except ReportStorageError as error:
+        io_manager.display_error("Data", str(error))
+        return
+
     report_dict = io_manager.prompt_email_fields()
 
     config = ai_manager.load_prompt_config()
@@ -34,8 +41,6 @@ def screen_one_email():
         io_manager.display_error("AI", f"Retrying AI request ({attempt}/{MAX_RETRIES})...")
         response_dict = io_manager.run_with_loading("Analysing email with AI", ai_manager.ai_workflow, system_prompt, user_prompt, config)
     
-    #step 8 (data, jeremy): load the saved report history
-    history = data_manager.read_file()
 
     #step 9 (logic, jeremy): campaign check, must run before the new report is added to history
     campaign_detector = logic_manager.CampaignDetector()
@@ -76,8 +81,11 @@ def view_reports_by_severity():
     #io: ask which severity to view
     severity = io_manager.prompt_severity_choice()
 
-    #(data, shao): load the saved reports into one ReportHistory object
-    history = ReportHistory(data_manager.read_file())
+    try:
+        history = ReportHistory(data_manager.read_file())
+    except ReportStorageError as error:
+        io_manager.display_error("Data", str(error))
+        return
 
     #(data, shao): keep only the matching reports, then put the most dangerous first
     matching_reports = history.filter_by_severity(severity).sort_by_threat_level()
