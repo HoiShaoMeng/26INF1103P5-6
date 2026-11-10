@@ -9,5 +9,8 @@ class JsonReportRepository:
         self._file_path = file_path
 
     def load_all(self) -> list:
-        with self._file_path.open("r", encoding="utf-8") as report_file:
-            return json.load(report_file)
+        try:
+            with self._file_path.open("r", encoding="utf-8") as report_file:
+                return json.load(report_file)
+        except FileNotFoundError:
+            return []
