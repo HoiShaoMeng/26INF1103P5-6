@@ -11,9 +11,9 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "logic"))
 
 from logic_manager import (  # type: ignore
+    ActionRecommender,
     CampaignDetector,
     SeverityClassifier,
-    	ActionRecommender,
 )
 from severity_rules import AiUnavailableRule  # type: ignore
 
