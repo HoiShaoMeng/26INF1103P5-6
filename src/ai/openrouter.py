@@ -1,4 +1,7 @@
 from openrouter import OpenRouter, errors
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
 
@@ -49,7 +52,7 @@ class OpenRouter():
         return response
 
 
-    def extract_content(self, reponse:str) -> str | None:
+    def extract_content(self, response:str) -> str | None:
         try:
                 response = response.model_dump()
                 message = response["choices"][0]["message"]
