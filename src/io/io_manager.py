@@ -7,9 +7,12 @@ from error_view import ErrorView
 from input_validator import InputValidator
 from loading_indicator import LoadingIndicator
 from menu_prompt import MenuPrompt
+from result_view import ResultView
+from text_view import TextView
 
 # One validator shared by every prompt in this file.
 validator = InputValidator()
+result_view = ResultView()
 
 def read_line(prompt: str) -> str:
     """Reads one line from the user, stripped off surrounding whitespace."""
@@ -47,31 +50,12 @@ def display_record_summary(record: dict) -> None:
 
 
 # --- Output format ---
-def format_label(key: str) -> str:
-    """Turns a data key into a label, e.g. 'threat_level' -> 'Threat level'."""
-    return key.replace("_", " ").capitalize()
+# The shared formatting now lives in TextView. These names stay until the report list gets its own view.
+format_label = TextView.format_label
+format_value = TextView.format_value
+format_section = TextView.format_section
 
-
-def format_value(value) -> str:
-    """Turns any value into display text based on its type, not on its field name."""
-    if value is None:
-        return "unknown"
-    # Checked early so True/False show as YES/no instead of "True"/"False"
-    if isinstance(value, bool):
-        return "YES" if value else "no"
-    if isinstance(value, dict):
-        return ", ".join(format_value(item) for item in value.values())
-    if isinstance(value, list):
-        return ", ".join(format_value(item) for item in value) or "none"
-    return str(value)
-
-
-def format_section(fields: list[tuple[str, object]], label_width: int) -> list[str]:
-    """Returns aligned 'Label: value' lines for a list of (key, value) pairs."""
-    return [f"{format_label(key) + ':':<{label_width}}{format_value(value)}" for key, value in fields]
-
-
-# Singapore has no daylight saving time, so a fixed UTC+8 offset is always correct.
+# A fixed UTC+8 offset is always correct.
 SINGAPORE_TIME = timezone(timedelta(hours=8), "SGT")
 
 def format_timestamp(value) -> str:
@@ -86,46 +70,10 @@ def format_timestamp(value) -> str:
 
 
 # --- Display results ---
-def build_result_lines(record: dict, ai_result: dict | None, severity: str,
-                       action: str, is_campaign: bool = False) -> list[str]:
-    """Builds the screening result from the record, whatever fields the AI returned, and logic's decision."""
-    # Shows whatever fields the AI returned (no fixed list), so a renamed AI field still displays.
-    ai_fields = list(ai_result.items()) if isinstance(ai_result, dict) and ai_result else [("ai_result", None)]
-    sections = [
-        [
-            ("sender", f"{record['sender_name']} <{record['sender_email']}>".strip()),
-            ("subject", record["subject"]),
-            ("reported_at", record["reported_at"]),
-        ],
-        ai_fields,
-        [
-            ("campaign", is_campaign),
-            ("severity", severity),
-            ("recommended_action", action),
-        ],
-    ]
-
-    # Longest label + 2 spaces, so every value starts in the same column.
-    label_width = max(len(format_label(key)) for section in sections for key, _ in section) + 2
-    blocks = [format_section(section, label_width) for section in sections]
-    # Divider lines are as wide as the longest line.
-    width = max(len(line) for block in blocks for line in block)
-
-    lines = ["=" * width, "SCREENING RESULT", "=" * width]
-    for index, block in enumerate(blocks):
-        if index > 0:
-            lines.append("-" * width)
-        lines += block
-    lines.append("=" * width)
-    return lines
-
-
 def display_screening_result(record: dict, ai_result: dict | None, severity: str,
                              action: str, is_campaign: bool = False) -> None:
     """Prints the full screening result for one reported email."""
-    print()
-    for line in build_result_lines(record, ai_result, severity, action, is_campaign):
-        print(line)
+    result_view.show(record, ai_result, severity, action, is_campaign)
 
 
 # --- Error messages ---
