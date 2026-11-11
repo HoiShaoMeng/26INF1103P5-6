@@ -2,7 +2,7 @@ import os
 import sys
 
 from ai_client import ai_client
-from exceptions import AIError, ConfigError, AIConnectionError, MalformedResponseError, SchemaValidationError
+from exceptions import AIConnectionError, AIError
 from openrouter import OpenRouter, errors
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
