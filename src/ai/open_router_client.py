@@ -3,6 +3,7 @@ import sys
 
 from openrouter import OpenRouter, errors
 from ai_client import ai_client
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
 
