@@ -1,12 +1,13 @@
-from openrouter import OpenRouter, errors
 import os
 import sys
+
+from openrouter import OpenRouter, errors
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
 
 
-class OpenRouter():
+class OpenRouter:
     def __init__(self, api_key, model, temperature, timeout_ms):
         self.__api_key = api_key
         self.__model = model
