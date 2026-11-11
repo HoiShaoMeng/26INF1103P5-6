@@ -2,7 +2,7 @@ import os
 import sys
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-for layer in ("io", "ai", "logic", "data"):
+for layer in ("io", "ai", "logic", "data", "domain"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
 import ai_manager
@@ -10,14 +10,17 @@ import data_manager
 import io_manager
 import logic_manager
 from json_report_repository import ReportStorageError
-from report_history import ReportHistory
+from screening_report import ScreeningReport, TriageDecision
 
 MAX_RETRIES = 3
 
 #menu option 1: screen one reported email from input to saved result
 def screen_one_email():
+    #(data, shao): load the saved history and the blocklist before asking anything, so a corrupt file is shown first
+    data = data_manager.DataManager.for_project(BASE_DIR)
     try:
-        history = data_manager.read_file()
+        history = data.load_history()
+        blocklist = data.load_blocklist()
     except ReportStorageError as error:
         io_manager.display_error("Data", str(error))
         return
@@ -44,26 +47,29 @@ def screen_one_email():
 
     #step 9 (logic, jeremy): campaign check, must run before the new report is added to history
     campaign_detector = logic_manager.CampaignDetector()
-    is_campaign = campaign_detector.check_campaign(report_dict, history)
+    is_campaign = campaign_detector.check_campaign(report_dict, history.to_dicts())
 
-    #step 10, 11 (logic, shao): decide the severity, pass the real campaign result, never a hard-coded False
-    severity_classifier = logic_manager.SeverityClassifier()
-    severity = severity_classifier.classify(response_dict, is_campaign=is_campaign)
+    #step 10, 11 (logic, shao): decide the severity, pass the real campaign result and the sender for the blocklist
+    severity_classifier = logic_manager.SeverityClassifier(blocklist=blocklist)
+    severity = severity_classifier.classify(response_dict, is_campaign=is_campaign,
+                                            sender_email=report_dict["sender_email"])
 
     #step 12 (logic, jeremy): turn the severity into the action text
     action_recommender = logic_manager.ActionRecommender()
     recommended_action = action_recommender.generate_recommended_action(severity)
 
-    #step 12 (data, shao): pack everything into one report, {} means it cannot be saved
-    new_report = data_manager.format_report(report_dict, response_dict, is_campaign, severity, recommended_action)
-
-    #step 13 (main): add the new report to the history, skipped if it is {}
+    #step 12 (data, shao): pack everything into one ScreeningReport, ValueError means it cannot be saved
+    decision = TriageDecision(severity, is_campaign, recommended_action)
     saved = False
-    if new_report:
-        history.append(new_report)
+    try:
+        new_report = ScreeningReport.create(report_dict, response_dict, decision)
+    except ValueError:
+        new_report = None
 
-        #step 15 (data, shao): save the whole history, True if saved, False if it failed
-        saved = data_manager.write_file(history)
+    #step 13, 15 (data, shao): add the new report to the history and save it, True if saved, False if it failed
+    if new_report is not None:
+        history.add(new_report)
+        saved = data.save_history(history)
 
     #step 16 (io, wei wen): show an AI error if the AI could not assess the email, then show the result
     if response_dict.get("classification") == ai_manager.AI_UNAVAILABLE:
@@ -81,8 +87,9 @@ def view_reports_by_severity():
     #io: ask which severity to view
     severity = io_manager.prompt_severity_choice()
 
+    #(data, shao): load the saved reports into one ReportHistory object
     try:
-        history = ReportHistory(data_manager.read_file())
+        history = data_manager.DataManager.for_project(BASE_DIR).load_history()
     except ReportStorageError as error:
         io_manager.display_error("Data", str(error))
         return
@@ -91,7 +98,7 @@ def view_reports_by_severity():
     matching_reports = history.filter_by_severity(severity).sort_by_threat_level()
 
     #io: show the matching reports, or a message if there are none
-    io_manager.display_report_list(matching_reports.reports, severity)
+    io_manager.display_report_list(matching_reports.to_dicts(), severity)
 
 #shows the menu until the user chooses exit
 def main():
