@@ -10,6 +10,8 @@ import data_manager
 import io_manager
 import logic_manager
 from json_report_repository import ReportStorageError
+from review_prompt import ReviewPrompt
+from review_service import ReviewService
 from screening_report import ScreeningReport, TriageDecision
 
 MAX_RETRIES = 3
@@ -100,6 +102,52 @@ def view_reports_by_severity():
     #io: show the matching reports, or a message if there are none
     io_manager.display_report_list(matching_reports.to_dicts(), severity)
 
+#menu option 3 (new feature, shao): an analyst confirms or rejects a saved report, the recovery step for
+#phishing the AI missed. confirmed phishing becomes CRITICAL, the sender is blocked, related archived reports are re-checked.
+def review_saved_report():
+    #(data): load the history and blocklist, a corrupt file stops here before anything changes
+    data = data_manager.DataManager.for_project(BASE_DIR)
+    try:
+        history = data.load_history()
+        blocklist = data.load_blocklist()
+    except ReportStorageError as error:
+        io_manager.display_error("Data", str(error))
+        return
+
+    #io: pick a severity and show that list, the same view as option 2
+    severity = io_manager.prompt_severity_choice()
+    matching_reports = history.filter_by_severity(severity).sort_by_threat_level()
+    io_manager.display_report_list(matching_reports.to_dicts(), severity)
+    if len(matching_reports) == 0:
+        return
+
+    #io: which report, which decision, who and why
+    review_prompt = ReviewPrompt(io_manager.read_line, io_manager.show_error)
+    report = matching_reports.reports[review_prompt.ask_report_number(len(matching_reports))]
+    decision = review_prompt.ask_decision()
+    if decision is None:
+        return
+    analyst = review_prompt.ask_text("Analyst name")
+    reason = review_prompt.ask_text("Reason")
+
+    #logic: apply the decision, then send related archived reports back for a re-check if it was phishing
+    review_service = ReviewService(logic_manager.ActionRecommender(), blocklist)
+    review = review_service.apply_review(report, decision, analyst, reason)
+    flagged = []
+    if review.blocked_entry:
+        flagged = review_service.flag_related(report, history)
+
+    #data: the report object is shared by the filtered list and the full history (aggregation), so saving
+    #the full history saves the review too
+    if not data.save_history(history):
+        io_manager.display_error("Data", "the review could not be saved")
+        return
+    if not data.save_blocklist(blocklist):
+        io_manager.display_error("Data", "the blocklist could not be saved")
+
+    #io: show what changed
+    review_prompt.show_result(report.report_id, review, len(flagged))
+
 #shows the menu until the user chooses exit
 def main():
     while True:
@@ -108,6 +156,8 @@ def main():
             screen_one_email()
         elif choice == "2":
             view_reports_by_severity()
+        elif choice == "3":
+            review_saved_report()
         else:
             break
 

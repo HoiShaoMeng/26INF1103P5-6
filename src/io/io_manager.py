@@ -269,14 +269,15 @@ def display_error(source: str, problem: str, next_step: str = "") -> None:
 
 
 # --- Menu and saved reports view ---
-MENU_OPTIONS = {"1": "Screen a new email", "2": "View saved reports by severity", "3": "Exit"}
+MENU_OPTIONS = {"1": "Screen a new email", "2": "View saved reports by severity",
+                "3": "Review a saved report", "4": "Exit"}
 
 # Must match the severities logic_manager returns and data_manager saves.
 SEVERITY_OPTIONS = {"1": "CRITICAL", "2": "NEEDS_REVIEW", "3": "LOG_ONLY"}
 
 
 def prompt_menu_choice() -> str:
-    """Shows the main menu and returns '1' (screen), '2' (view reports) or '3' (exit)."""
+    """Shows the main menu and returns '1' (screen), '2' (view reports), '3' (review) or '4' (exit)."""
     return MenuPrompt("Phishing Triage Assistant", MENU_OPTIONS, read_line, show_error).ask()
 
 def prompt_severity_choice() -> str:
@@ -310,10 +311,19 @@ def build_report_list_lines(reports: list[dict], severity: str) -> list[str]:
             ("campaign", report.get("is_campaign")),
             ("action", report.get("recommended_action")),
         ]
+        # Shows the analyst review and re-check note only when there is one.
+        review = report.get("review")
+        if isinstance(review, dict):
+            decision = str(review.get("decision", "")).replace("_", " ").lower()
+            fields.append(("review", f"{decision} by {format_value(review.get('analyst'))}"))
+        if report.get("flagged_by"):
+            fields.append(("re_check", f"related to confirmed phishing report {report['flagged_by']}"))
         label_width = max(len(format_label(key)) for key, _ in fields) + 2
 
         lines.append("")
-        lines.append(f" [{number}]  {format_timestamp(report.get('reported_at'))}")
+        report_id = report.get("report_id")
+        id_text = f"   id {report_id}" if report_id else ""
+        lines.append(f" [{number}]  {format_timestamp(report.get('reported_at'))}{id_text}")
         lines.append(light_line)
         lines += ["   " + line for line in format_section(fields, label_width)]
 
