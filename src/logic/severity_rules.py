@@ -30,14 +30,15 @@ class SeverityRule(ABC):
     def severity(self) -> Severity:
         return self._severity
 
-    #every subclass must decide when it matches, python will not create a subclass that skips this
+    #every subclass must decide when it matches, python will not create a subclass that skips this.
+    #sender_email is optional: only rules that need the sender (e.g. the blocklist) use it, the others ignore it.
     @abstractmethod
-    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
         pass
 
     #shared behaviour for all rules: gives this rule's severity if it matches, or None if it does not
-    def apply(self, ai_output: dict, is_campaign: bool) -> Severity | None:
-        if self.matches(ai_output, is_campaign):
+    def apply(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> Severity | None:
+        if self.matches(ai_output, is_campaign, sender_email):
             return self._severity
         return None
 
@@ -50,7 +51,7 @@ class AiUnavailableRule(SeverityRule):
     def __init__(self):
         super().__init__(Severity.NEEDS_REVIEW)
 
-    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
         if not isinstance(ai_output, dict):
             return False
         return ai_output.get("classification") == self.UNAVAILABLE_CLASSIFICATION
@@ -62,7 +63,7 @@ class CampaignRule(SeverityRule):
     def __init__(self):
         super().__init__(Severity.CRITICAL)
 
-    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
         return bool(is_campaign)
 
 
@@ -73,11 +74,39 @@ class DomainMismatchEvidenceRule(SeverityRule):
     def __init__(self):
         super().__init__(Severity.CRITICAL)
 
-    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
         sender_domain_mismatch = bool(ai_output.get("sender_domain_mismatch"))
         has_suspicious_urls = bool(ai_output.get("suspicious_urls"))
         has_suspicious_attachments = bool(ai_output.get("suspicious_attachments"))
         return sender_domain_mismatch and (has_suspicious_urls or has_suspicious_attachments)
+
+
+#new feature: a sender an analyst already confirmed as phishing is CRITICAL straight away, even if the AI is down.
+#association: the rule only refers to a Blocklist it is given, it does not create or own it.
+class BlocklistRule(SeverityRule):
+
+    def __init__(self, blocklist=None):
+        super().__init__(Severity.CRITICAL)
+        self._blocklist = blocklist
+
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+        #no blocklist loaded means nothing is blocked, the other rules still run
+        if self._blocklist is None:
+            return False
+        return self._blocklist.contains_sender(sender_email)
+
+
+#new feature, safety net against missed phishing: if the AI flagged a link or attachment as suspicious,
+#the report is never auto-archived as LOG_ONLY, even with a low threat_level. it goes to a person instead.
+class SuspiciousEvidenceRule(SeverityRule):
+
+    def __init__(self):
+        super().__init__(Severity.NEEDS_REVIEW)
+
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+        has_suspicious_urls = bool(ai_output.get("suspicious_urls"))
+        has_suspicious_attachments = bool(ai_output.get("suspicious_attachments"))
+        return has_suspicious_urls or has_suspicious_attachments
 
 
 #base band: matches when the AI's threat_level is at or above min_level.
@@ -93,7 +122,7 @@ class ThreatBandRule(SeverityRule):
     def min_level(self) -> int:
         return self._min_level
 
-    def matches(self, ai_output: dict, is_campaign: bool) -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
         threat_level = ai_output.get("threat_level")
         if not isinstance(threat_level, (int, float)):
             threat_level = 0  #missing/bad data should never crash the pipeline

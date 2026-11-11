@@ -10,11 +10,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "logic")
 
 from severity_rules import (  # type: ignore
     AiUnavailableRule,
+    BlocklistRule,
     CampaignRule,
     DomainMismatchEvidenceRule,
     MultiTacticEscalation,
     Severity,
     SeverityRule,
+    SuspiciousEvidenceRule,
     ThreatBandRule,
 )
 
@@ -37,7 +39,7 @@ def test_severity_rule_cannot_be_created_directly():
 
 def test_every_rule_is_a_severity_rule():
     rules = [AiUnavailableRule(), CampaignRule(), DomainMismatchEvidenceRule(),
-             ThreatBandRule(80, Severity.CRITICAL)]
+             ThreatBandRule(80, Severity.CRITICAL), BlocklistRule(), SuspiciousEvidenceRule()]
     for rule in rules:
         assert isinstance(rule, SeverityRule)
 
@@ -72,6 +74,46 @@ def test_campaign_rule_follows_is_campaign():
 ])
 def test_domain_mismatch_rule_needs_mismatch_and_evidence(ai_output, expected):
     assert DomainMismatchEvidenceRule().matches(ai_output, False) is expected
+
+# --- BlocklistRule (new feature) ---
+# a stand-in blocklist: the rule only needs contains_sender(), so the test does not need the real file
+class FakeBlocklist:
+    def __init__(self, blocked_senders):
+        self._blocked_senders = blocked_senders
+
+    def contains_sender(self, sender_email):
+        return sender_email in self._blocked_senders
+
+
+def test_blocklist_rule_matches_a_blocked_sender_only():
+    rule = BlocklistRule(FakeBlocklist({"ceo@evil.com"}))
+    assert rule.matches({}, False, "ceo@evil.com") is True
+    assert rule.matches({}, False, "friend@good.com") is False
+    assert rule.severity == Severity.CRITICAL
+
+
+def test_blocklist_rule_without_a_blocklist_never_matches():
+    assert BlocklistRule().matches({}, False, "ceo@evil.com") is False
+
+
+def test_old_calls_without_sender_still_work():
+    #sender_email is optional, so rules called the Part 1 way (two arguments) still work
+    assert CampaignRule().apply({}, True) == Severity.CRITICAL
+    assert BlocklistRule(FakeBlocklist({"a@x.com"})).apply({}, False) is None
+
+
+# --- SuspiciousEvidenceRule (new feature) ---
+@pytest.mark.parametrize("ai_output, expected", [
+    ({"suspicious_urls": ["http://x.com"]}, True),
+    ({"suspicious_attachments": ["a.exe"]}, True),
+    ({"suspicious_urls": [], "suspicious_attachments": []}, False),
+    ({}, False),
+])
+def test_suspicious_evidence_rule_needs_a_flagged_url_or_attachment(ai_output, expected):
+    rule = SuspiciousEvidenceRule()
+    assert rule.matches(ai_output, False) is expected
+    assert rule.severity == Severity.NEEDS_REVIEW
+
 
 # --- ThreatBandRule ---
 @pytest.mark.parametrize("threat_level, expected", [(80, True), (79, False), (100, True)])

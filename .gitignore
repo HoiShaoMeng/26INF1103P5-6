@@ -5,3 +5,5 @@ venv/
 __pycache__/
 *.pyc
 .env
+# Created at runtime by the review feature, like reports.json it is local data, not code.
+data/blocklist.json

@@ -1,88 +1,41 @@
-import json
-import os
+"""data_manager: the Data Manager, the one place the rest of the app goes to load and save data."""
+
 from pathlib import Path
 
+from json_blocklist_store import JsonBlocklistStore
 from json_report_repository import JsonReportRepository
+from report_history import ReportHistory
+from report_repository import ReportRepository
 
 
-def read_file() -> list:
-    project_dir = Path(__file__).resolve().parents[2]
-    file_path = project_dir / "data" / "reports.json"
-    return JsonReportRepository(file_path).load_all()
+#loads and saves the report history and the blocklist. it never prints, errors go back to the caller.
+#aggregation: the repository and the blocklist store are passed in, so they exist on their own and can be
+#swapped, e.g. an in-memory repository in tests or a database later, without changing this class.
+class DataManager:
 
-#builds the one flat record that gets saved to reports.json, it only arranges data and never decides anything.
-#sender_email and reported_at stay at the top level because check_campaign() reads them from the saved reports.
-#returns an empty dict if the record is missing either of them, so a report that campaign detection cant use is never saved.
-def format_report(record: dict, ai_output: dict, is_campaign: bool, severity: str, recommended_action: str) -> dict:
+    def __init__(self, report_repository: ReportRepository, blocklist_store: JsonBlocklistStore):
+        self._report_repository = report_repository
+        self._blocklist_store = blocklist_store
 
-    if not isinstance(record, dict):
-        return {}
+    #builds the normal JSON setup inside the project's data/ folder (the Docker volume)
+    @classmethod
+    def for_project(cls, project_dir) -> "DataManager":
+        data_dir = Path(project_dir) / "data"
+        return cls(JsonReportRepository(data_dir / "reports.json"),
+                   JsonBlocklistStore(data_dir / "blocklist.json"))
 
-    if "sender_email" not in record or "reported_at" not in record:
-        return {}
+    #raises ReportStorageError if reports.json is corrupt, a missing file gives an empty history
+    def load_history(self) -> ReportHistory:
+        return ReportHistory.from_dicts(self._report_repository.load_all())
 
-    #ai_output is not a dict if the AI failed, so fall back to an empty dict instead of crashing
-    if not isinstance(ai_output, dict):
-        ai_output = {}
+    #True if saved, False if it failed
+    def save_history(self, history: ReportHistory) -> bool:
+        return self._report_repository.save_all(history.to_dicts())
 
-    return {
-        #fields from io_manager
-        "sender_email": record["sender_email"],
-        "sender_name": record.get("sender_name", ""),
-        "subject": record.get("subject", ""),
-        "body": record.get("body", ""),
-        "urls": record.get("urls") or [],
-        "attachments": record.get("attachments") or [],
-        "reported_at": record["reported_at"],
+    #raises ReportStorageError if blocklist.json is corrupt, a missing file gives an empty blocklist
+    def load_blocklist(self):
+        return self._blocklist_store.load()
 
-        #fields from ai_manager
-        "classification": ai_output.get("classification"),
-        "threat_level": ai_output.get("threat_level"),
-        "tactics_detected": ai_output.get("tactics_detected") or [],
-        "suspicious_urls": ai_output.get("suspicious_urls") or [],
-        "suspicious_attachments": ai_output.get("suspicious_attachments") or [],
-        "sender_domain_mismatch": ai_output.get("sender_domain_mismatch"),
-
-        #fields from logic_manager
-        "is_campaign": is_campaign,
-        "severity": severity,
-        "recommended_action": recommended_action,
-    }
-
-#saves the whole report history to data/reports.json, the same file read_file() reads.
-#order in the pipeline: read_file() -> add the new report to the list -> write_file(list)
-#returns True when the file was written, False when it failed (no print here, io_manager shows the message).
-def write_file(reports: list) -> bool:
-    #read_file() only accepts a list, so never write anything else
-    if not isinstance(reports, list):
-        return False
-
-    #locate reports.json the same way read_file() does
-    current_file = Path(__file__)
-    project_dir = current_file.parent.parent.parent
-    file_path = project_dir / "data" / "reports.json"
-    temp_path = project_dir / "data" / "reports.json.tmp"
-
-    try:
-        #make sure the data folder exists
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        #write to a temp file first, so a crash half way never damages the real history
-        with open(temp_path, "w", encoding="utf-8") as file:
-            json.dump(reports, file, indent=2, ensure_ascii=False)
-            file.write("")
-
-        #only once the temp file is complete, swap it in as the real file
-        os.replace(temp_path, file_path)
-        return True
-
-    except (OSError, TypeError, ValueError):
-        #OSError: no permission, disk full, folder cant be created. TypeError/ValueError: data cant be turned into JSON
-        #remove the half written temp file, the old reports.json is left untouched
-        try:
-            if temp_path.exists():
-                temp_path.unlink()
-        except OSError:
-            pass
-
-        return False
+    #True if saved, False if it failed
+    def save_blocklist(self, blocklist) -> bool:
+        return self._blocklist_store.save(blocklist)

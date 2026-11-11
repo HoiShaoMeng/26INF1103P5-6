@@ -335,6 +335,73 @@ def test_check_campaign_ignores_future_report():
         False,
     )
 
+# stand-in blocklist for the classifier tests: only contains_sender() is needed, no file is read
+class FakeBlocklist:
+    def __init__(self, blocked_senders):
+        self._blocked_senders = blocked_senders
+
+    def contains_sender(self, sender_email):
+        return sender_email in self._blocked_senders
+
+
+blocking_classifier = SeverityClassifier(blocklist=FakeBlocklist({"ceo@evil.com"}))
+
+
+# test case: new feature, a blocked sender is CRITICAL even with threat 0, and even when the AI is down
+def test_classify_severity_blocked_sender_is_critical():
+    check(
+        "blocked sender, threat 0",
+        blocking_classifier.classify({"classification": "benign", "threat_level": 0}, sender_email="ceo@evil.com"),
+        "CRITICAL",
+    )
+    check(
+        "blocked sender, AI unavailable",
+        blocking_classifier.classify({"classification": "AI_UNAVAILABLE"}, sender_email="ceo@evil.com"),
+        "CRITICAL",
+    )
+    check(
+        "blocked sender, no AI output at all",
+        blocking_classifier.classify(None, sender_email="ceo@evil.com"),
+        "CRITICAL",
+    )
+
+
+# test case: new feature, a sender that is not blocked follows the normal rules
+def test_classify_severity_unblocked_sender_uses_normal_rules():
+    check(
+        "unblocked sender, threat 12",
+        blocking_classifier.classify({"classification": "benign", "threat_level": 12}, sender_email="hr@good.com"),
+        "LOG_ONLY",
+    )
+
+
+# test case: new safety net, a flagged url with a low threat_level is NEEDS_REVIEW, never LOG_ONLY
+def test_classify_severity_suspicious_evidence_is_never_log_only():
+    fake_ai_output = {
+        "classification": "benign",
+        "threat_level": 10,
+        "tactics_detected": [],
+        "suspicious_urls": ["http://bit.ly/x"],
+        "sender_domain_mismatch": False,
+    }
+    check("threat 10 + flagged url, no mismatch", classifier.classify(fake_ai_output), "NEEDS_REVIEW")
+
+
+# test case: new safety net, the floor can still be escalated by rule B, and never lowers a higher band
+def test_classify_severity_suspicious_evidence_works_with_other_rules():
+    check(
+        "threat 10 + flagged attachment + 2 tactics",
+        classifier.classify({"threat_level": 10, "suspicious_attachments": ["a.exe"],
+                             "tactics_detected": ["urgency_pressure", "impersonation"]}),
+        "CRITICAL",
+    )
+    check(
+        "threat 85 + flagged url",
+        classifier.classify({"threat_level": 85, "suspicious_urls": ["http://x.com"]}),
+        "CRITICAL",
+    )
+
+
 ALL_TESTS = [
     test_is_ai_unavailable_true_when_classification_matches,
     test_is_ai_unavailable_false_for_normal_classification,
@@ -353,6 +420,10 @@ ALL_TESTS = [
     test_classify_severity_missing_threat_level_is_log_only,
     test_classify_severity_full_ai_unavailable_placeholder_returns_needs_review,
     test_classify_severity_non_dict_ai_output_returns_needs_review,
+    test_classify_severity_blocked_sender_is_critical,
+    test_classify_severity_unblocked_sender_uses_normal_rules,
+    test_classify_severity_suspicious_evidence_is_never_log_only,
+    test_classify_severity_suspicious_evidence_works_with_other_rules,
     test_generate_recommended_action_for_each_severity,
     test_generate_recommended_action_unknown_severity_falls_back_to_manual_review,
     test_check_campaign_true_for_same_domain_different_senders,

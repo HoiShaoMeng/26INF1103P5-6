@@ -1,16 +1,30 @@
 """report_history: the saved reports as one object, with the filter and sort queries the IT team uses."""
 
-#a group of saved reports that can be filtered and sorted.
-#aggregation: the history holds reports that already exist on their own (loaded from reports.json),
-#it only groups them, so a report is not created or destroyed by the history.
+from screening_report import ScreeningReport
+
+
+#a group of saved ScreeningReport objects that can be filtered and sorted.
+#aggregation: the history only groups reports that exist on their own. a filtered history holds the
+#same report objects as the full one, so a report is never copied, created or destroyed by a history.
 class ReportHistory:
 
     def __init__(self, reports: list | None = None):
         #anything that is not a list (e.g. None) gives an empty history instead of crashing
         if not isinstance(reports, list):
             reports = []
-        #private: only report dicts are kept, anything else in the file is skipped
-        self._reports = [report for report in reports if isinstance(report, dict)]
+        #private: only ScreeningReport objects are kept, anything else is skipped
+        self._reports = [report for report in reports if isinstance(report, ScreeningReport)]
+
+    #builds a history from the dicts saved in reports.json, skipping anything that is not a report dict
+    @classmethod
+    def from_dicts(cls, saved_reports: list) -> "ReportHistory":
+        if not isinstance(saved_reports, list):
+            return cls()
+        return cls([ScreeningReport.from_dict(item) for item in saved_reports if isinstance(item, dict)])
+
+    #the saved form of every report, used to write reports.json and by campaign detection
+    def to_dicts(self) -> list:
+        return [report.to_dict() for report in self._reports]
 
     #read-only access: returns a copy of the list, so outside code cannot change the history by accident
     @property
@@ -20,6 +34,11 @@ class ReportHistory:
     #lets len(history) give the number of saved reports
     def __len__(self) -> int:
         return len(self._reports)
+
+    #adds one new report to the end, so the saved order stays oldest first
+    def add(self, report: ScreeningReport) -> None:
+        if isinstance(report, ScreeningReport):
+            self._reports.append(report)
 
     #filter/query: returns a new history with only the reports of the given severity, in saved order.
     #it never changes this history, and gives an empty history if nothing matches.
@@ -33,7 +52,7 @@ class ReportHistory:
 
         matching_reports = []
         for report in self._reports:
-            if report.get("severity") == wanted_severity:
+            if report.severity == wanted_severity:
                 matching_reports.append(report)
 
         return ReportHistory(matching_reports)
@@ -46,8 +65,8 @@ class ReportHistory:
 
     #private helper for sorting: a report's threat level, or -1 if it is missing or not a number, so those go last
     @staticmethod
-    def _threat_level_or_lowest(report: dict) -> float:
-        threat_level = report.get("threat_level")
+    def _threat_level_or_lowest(report: ScreeningReport) -> float:
+        threat_level = report.threat_level
         if isinstance(threat_level, (int, float)):
             return threat_level
         return -1
