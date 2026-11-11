@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 
 from email_prompt import EmailPrompt
+from error_view import ErrorView
 from input_validator import InputValidator
 from loading_indicator import LoadingIndicator
 from menu_prompt import MenuPrompt
@@ -17,7 +18,7 @@ def read_line(prompt: str) -> str:
 
 def show_error(message: str) -> None:
     """Prints a rejection message."""
-    loading.print_message(f"  [!] {message}")
+    error_view.show_input_error(message)
 
 
 AI_INPUT_FIELDS = ("sender_email", "sender_name", "subject", "body", "urls", "attachments")
@@ -128,18 +129,11 @@ def display_screening_result(record: dict, ai_result: dict | None, severity: str
 
 
 # --- Error messages ---
-def format_error_message(source: str, problem: str, next_step: str = "") -> str:
-    """Returns one error line, e.g. '  [!] AI error: request timed out. Perform a manual check within 24 hours.'"""
-    message = f"  [!] {source} error: {problem.rstrip('.')}."
-    if next_step:
-        message += f" {next_step}"
-    return message
-
-
 def display_error(source: str, problem: str, next_step: str = "") -> None:
     """Prints an error from any layer; the caller supplies the problem and what happens next."""
-    # Clears the loading dots first, so the message gets its own line.
-    loading.print_message(format_error_message(source, problem, next_step))
+    error_view.show(source, problem, next_step)
+
+
 
 # --- Menu and saved reports view ---
 MENU_OPTIONS = {"1": "Screen a new email", "2": "View saved reports by severity",
@@ -215,7 +209,8 @@ def display_report_list(reports: list[dict], severity: str) -> None:
 # --- Loading animation ---
 # One indicator shared by the whole program, so errors and the dots never print over each other.
 loading = LoadingIndicator()
-
+# Errors print through the indicator, so the loading dots are cleared first and each message gets its own line.
+error_view = ErrorView(loading.print_message)
 
 def run_with_loading(message: str, task, *args):
     """Runs task(*args) while animated dots show it is busy, then returns the task's result."""
