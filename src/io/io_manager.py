@@ -1,7 +1,8 @@
 """io_manager: collects and validates reported-email input from the terminal."""
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
+from email_prompt import EmailPrompt
 from input_validator import InputValidator
 from loading_indicator import LoadingIndicator
 from menu_prompt import MenuPrompt
@@ -19,121 +20,6 @@ def show_error(message: str) -> None:
     loading.print_message(f"  [!] {message}")
 
 
-def prompt_field(prompt: str, field: str) -> str:
-    """Re-prompts until the value passes the field's rule in INPUT_RULES."""
-    while True:
-        value = read_line(prompt)
-        error = validator.get_error(field, value)
-        if error is None:
-            return value
-        show_error(error)
-
-
-# Lowercase so check_campaign() treats PayPal@x.com and paypal@x.com as the same sender.
-def prompt_sender_email() -> str:
-    """Re-prompts until the user enters a valid sender email address."""
-    return prompt_field("Sender email: ", "sender_email").lower()
-
-
-def prompt_yes_no(prompt: str) -> bool:
-    """Re-prompts until the user answers y or n. Returns True for yes."""
-    while True:
-        answer = read_line(f"{prompt} (y/n): ").lower()
-        if answer in ("y", "yes"):
-            return True
-        if answer in ("n", "no"):
-            return False
-        show_error("Please enter y or n.")
-
-
-# A blank line can't end the body, because real emails have blank lines between paragraphs.
-BODY_END_MARKER = "END"
-
-
-def collect_multiline_body() -> str:
-    """Collects body text line by line until the user types END on its own line. Blank lines inside the email are kept. Re-prompts if the body is empty."""
-    while True:
-        print(f"Body text (paste the email, then type {BODY_END_MARKER} on its own line to finish):")
-        lines = []
-        while True:
-            line = input()
-            if line.strip().upper() == BODY_END_MARKER:
-                break
-            lines.append(line.rstrip())
-        body = "\n".join(lines).strip()
-        error = validator.get_error("body", body)
-        if error is None:
-            return body
-        show_error(error)
-
-
-def collect_urls() -> list[str]:
-    """Optionally collects one or more URLs. Returns an empty list if none."""
-    urls = []
-    if not prompt_yes_no("Any URLs found in the email?"):
-        return urls
-    print("Enter one URL per line (blank line to finish):")
-    while True:
-        url = read_line("  URL: ")
-        if url == "":
-            break
-        error = validator.get_error("urls", url)
-        if error:
-            show_error(error)
-            continue
-        urls.append(url)
-    return urls
-
-
-# Only the LAST extension counts: "invoice.pdf.exe" is really an .exe
-def split_extension(filename: str) -> str:
-    """Returns the final extension in lowercase, e.g. 'invoice.pdf.exe' -> 'exe'."""
-    if "." not in filename:
-        return ""
-    return filename.rsplit(".", 1)[1].lower()
-
-
-def collect_attachment_metadata() -> list[dict]:
-    """Optionally collects attachment filenames only; contents are never read.
-
-    Returns a list of {"filename": str, "extension": str}, possibly empty.
-    """
-    attachments = []
-    if not prompt_yes_no("Any attachments?"):
-        return attachments
-    print("Enter one attachment filename per line (blank line to finish):")
-    while True:
-        filename = read_line("  Filename: ")
-        if filename == "":
-            break
-        error = validator.get_error("attachments", filename)
-        if error:
-            show_error(error)
-            continue
-        # Only the name is stored; the file is never opened, so a harmful attachment can't run.
-        attachments.append({"filename": filename, "extension": split_extension(filename)})
-    return attachments
-
-
-# UTC so times from different laptops and Docker compare correctly in check_campaign(). Shown in SGT by format_timestamp()
-def current_timestamp() -> str:
-    """Returns the current UTC time in ISO format, e.g. '2026-09-28T06:05:00+00:00'."""
-    return datetime.now(UTC).isoformat(timespec="seconds")
-
-
-def build_email_record(sender_email: str, sender_name: str, subject: str, body: str, urls: list[str], attachments: list[dict]) -> dict:
-    """Packages validated fields into one record for the rest of the pipeline. reported_at is added automatically; logic_manager.check_campaign() needs it."""
-    return {
-        "sender_email": sender_email,
-        "sender_name": sender_name,
-        "subject": subject,
-        "body": body,
-        "urls": urls,
-        "attachments": attachments,
-        "reported_at": current_timestamp(),
-    }
-
-
 AI_INPUT_FIELDS = ("sender_email", "sender_name", "subject", "body", "urls", "attachments")
 
 
@@ -144,14 +30,7 @@ def get_ai_input(record: dict) -> dict:
 
 def prompt_email_fields() -> dict:
     """Collects one reported email from the user and returns it as a record."""
-    print("\n=== Report a suspicious email ===")
-    sender_email = prompt_sender_email()
-    sender_name = prompt_field("Sender display name (optional, press Enter to skip): ", "sender_name")
-    subject = prompt_field("Subject: ", "subject")
-    body = collect_multiline_body()
-    urls = collect_urls()
-    attachments = collect_attachment_metadata()
-    return build_email_record(sender_email, sender_name, subject, body, urls, attachments)
+    return EmailPrompt(validator, read_line, show_error).ask()
 
 
 def display_record_summary(record: dict) -> None:
