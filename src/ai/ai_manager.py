@@ -4,6 +4,8 @@ import sys
 
 import yaml
 from openrouter import OpenRouter, errors
+from prompt_config import PromptConfig
+from response_validator import ResponseValidator
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
@@ -95,162 +97,6 @@ def build_user_prompt(email_data: dict) -> str:
         f"URLs: {', '.join(email_data.get('urls', [])) or 'none'}\n"
         f"Attachments: {', '.join(attachment_names) or 'none'}\n"
     )
-
-def is_response_dictionary(response_dict: dict) -> bool:
-    """Checks whether the model's response is a dictionary.
-    Args:
-        response_dict: The parsed JSON response from the model.
-
-    Returns:
-        bool: True if the response is a dictionary, False otherwise.
-    """
-    if not isinstance(response_dict, dict):
-        io_manager.display_error("Response", "Response is not a dictionary.")
-        return False
-    return True
-
-def is_allowed_classification(classification: str, allowed_classifications: list) -> bool:
-    """Checks whether the classification is in the allowed classifications.
-
-    Args:
-        classification (str): The classification returned by the model.
-        allowed_classifications (list): The list of allowed classifications.
-    Returns:
-        bool: True if the classification is allowed, False otherwise.
-    """
-    return classification in allowed_classifications
-
-def has_required_keys(response_dict: dict, required_keys: list) -> bool:
-    """Checks whether the model's response contains all required keys.
-    Args:
-        response_dict: The parsed JSON response from the model.
-        required_keys (list): A list of required keys.
-
-    Returns:
-        bool: True if all required keys are present, False otherwise.
-    """
-    for key in required_keys:
-        if key not in response_dict:
-            io_manager.display_error("Validation", f"Missing required key in response: {key}")
-            return False
-    return True
-
-def has_valid_threat_level(response_dict: dict, threat_level_range: list) -> bool:
-    """Checks whether the response threat level is an integer and in range.
-    Args:
-        response_dict: The parsed JSON response from the model.
-        threat_level_range (list): A list containing the minimum and maximum allowed threat levels.
-
-    Returns:
-        bool: True if the threat level is valid, False otherwise.
-    """
-    if "threat_level" not in response_dict:
-        return True
-
-    threat_level = response_dict["threat_level"]
-    if isinstance(threat_level, bool) or not isinstance(threat_level, int):
-        io_manager.display_error("Validation", "Threat level is not an integer.")
-        return False
-    if threat_level < threat_level_range[0] or threat_level > threat_level_range[1]:
-        io_manager.display_error("Validation", "Threat level is out of the allowed range.")
-        return False
-    return True
-
-def has_lists_of_strings(response_dict: dict, list_keys: list) -> bool:
-    """Checks whether the specified keys in the response are lists of strings.
-
-    Args:
-        response_dict: The parsed JSON response from the model.
-        list_keys (list): A list of keys that should contain lists of strings.
-    Returns:
-        bool: True if all specified keys contain lists of strings, False otherwise.
-    """
-    for key in list_keys:
-        if key not in response_dict:
-            io_manager.display_error("Validation", f"Key not found in response: {key}")
-            return False
-        if not isinstance(response_dict[key], list):
-            io_manager.display_error("Validation", f"Value for key {key} is not a list.")
-            return False
-        for item in response_dict[key]:
-            if not isinstance(item, str):
-                io_manager.display_error("Validation", f"Item in list for key {key} is not a string.")
-                return False
-    return True
-
-def has_valid_tactics(response_dict: dict, tactics_vocabulary: list) -> bool:
-    """Checks that tactics are allowed and are not duplicated.
-
-    Args:
-        response_dict: The parsed JSON response from the model.
-        tactics_vocabulary: The list of tactics allowed by the configuration.
-
-    Returns:
-        bool: True if all tactics are allowed and unique, False otherwise.
-    """
-    tactics = response_dict["tactics_detected"]
-    if len(tactics) != len(set(tactics)):
-        io_manager.display_error("Validation", "Tactics detected must not contain duplicates.")
-        return False
-    if any(tactic not in tactics_vocabulary for tactic in tactics):
-        io_manager.display_error("Validation", "Tactics detected contains an unknown tactic.")
-        return False
-    return True
-
-def is_boolean(value: object) -> bool:
-    """Checks whether the value is a boolean.
-
-    Args:
-        value: The value to check.
-
-    Returns:
-        bool: True if the value is a boolean, False otherwise.
-    """
-    return isinstance(value, bool)
-
-def validate_schema(response_dict: dict, config: dict) -> bool:
-    """Validates the model's response against the expected schema defined in the prompt configuration.
-
-    Args:
-        response_dict (dict): The parsed JSON response from the model.
-        config (dict): The prompt configuration containing the expected schema.
-
-    Returns:
-        bool: True if valid, False otherwise.
-    """
-    req = config["requirements"]
-    required_keys = req["output_fields"].keys()
-    if not is_response_dictionary(response_dict):
-        return False
-
-    if not is_allowed_classification(response_dict.get("classification"), req["allowed_classifications"]):
-        return False
-
-    if not has_required_keys(response_dict, required_keys):
-        return False
-
-    threat_level_range = req["threat_level_range"]
-    if not has_valid_threat_level(response_dict, threat_level_range):
-        return False
-
-    field_types = {
-        key: field["type"] for key, field in req["output_fields"].items()
-    }
-    list_keys = [key for key, value in field_types.items() if value == "list"]
-    if not has_lists_of_strings(response_dict, list_keys):
-        return False
-
-    if not has_valid_tactics(response_dict, req["tactics_vocabulary"]):
-        return False
-
-    boolean_keys = [key for key, value in field_types.items() if value == "boolean"]
-    for key in boolean_keys:
-        if not is_boolean(response_dict.get(key)):
-            io_manager.display_error("Validation", f"Value for key {key} is not a boolean.")
-            return False
-
-    # Additional validation logic can be added here (e.g., type checks, value ranges)
-    return True
 
 def parse_response_content(content_str: str) -> dict | None:
     """Converts the model's JSON text into a Python dict.
@@ -362,8 +208,13 @@ def ai_workflow(system_prompt: str, user_prompt: str, config: dict) -> dict:
     
     response_content = receive_response(response)
     response_dict = parse_response_content(response_content)
-    if validate_schema(response_dict, config):
-        
-        return response_dict
-    else:
+
+    validator = ResponseValidator.from_config(PromptConfig.from_dict(config))
+    try:
+        validator.validate(response_dict)
+
+    except ValueError as e:
+        io_manager.display_error("Validation", str(e))
         return build_unavailable_result()
+
+    return response_dict

@@ -23,19 +23,25 @@ class PromptConfig:
     def load_from_yaml_file(cls, file_path: str = CONFIG_PATH) -> 'PromptConfig':
         with open(file_path, 'r', encoding='utf-8') as file:
             config_data = yaml.safe_load(file)
-            requirements = config_data.get('requirements', {})
 
         # will add validation of the config data here when configerror is ready
         
+        return cls.from_dict(config_data)
+        
+
+    @classmethod
+    def from_dict(cls, config_data: dict) -> "PromptConfig":
+        requirements = config_data.get("requirements", {})
+
         return cls(
-            model=config_data.get('model'),
-            temperature=config_data.get('temperature', 0),
-            allowed_classifications=requirements.get('allowed_classifications'),
-            threat_level_range=requirements.get('threat_level_range'),
-            tactics_vocabulary=requirements.get('tactics_vocabulary'),
-            output_fields=requirements.get('output_fields'),
-            rules=requirements.get('rules')
-        )
+                    model=config_data.get('model'),
+                    temperature=config_data.get('temperature', 0),
+                    allowed_classifications=requirements.get('allowed_classifications'),
+                    threat_level_range=requirements.get('threat_level_range'),
+                    tactics_vocabulary=requirements.get('tactics_vocabulary'),
+                    output_fields=requirements.get('output_fields'),
+                    rules=requirements.get('rules')
+                )
 
     def get_model(self) -> str:
         return self._model
