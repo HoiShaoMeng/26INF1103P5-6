@@ -3,10 +3,10 @@ import os
 import sys
 
 import yaml
+from exceptions import SchemaValidationError
 from openrouter import OpenRouter, errors
 from prompt_config import PromptConfig
 from response_validator import ResponseValidator
-from exceptions import SchemaValidationError
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager

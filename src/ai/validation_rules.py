@@ -1,6 +1,7 @@
 """Validation rules for ai responses."""
 
 from abc import ABC, abstractmethod
+
 from exceptions import SchemaValidationError
 
 

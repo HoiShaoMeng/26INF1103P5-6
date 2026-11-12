@@ -1,5 +1,6 @@
 """This module contains the ResponseValidator class, which is responsible for validating the response from the AI model"""
 
+from exceptions import SchemaValidationError
 from prompt_config import PromptConfig
 from validation_rules import (
     BooleanFieldRule,
@@ -10,7 +11,6 @@ from validation_rules import (
     ThreatLevelRule,
     ValidationRule,
 )
-from exceptions import SchemaValidationError
 
 
 class ResponseValidator:
