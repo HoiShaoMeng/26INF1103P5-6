@@ -43,23 +43,30 @@ class PromptConfig:
                     rules=requirements.get('rules')
                 )
 
-    def get_model(self) -> str:
+    @property
+    def model(self) -> str:
         return self._model
 
-    def get_temperature(self) -> float:
+    @property
+    def temperature(self) -> float:
         return self._temperature
 
-    def get_allowed_classifications(self) -> list[str]:
+    @property
+    def allowed_classifications(self) -> list[str]:
         return list(self._allowed_classifications)
 
-    def get_threat_level_range(self) -> tuple[int, int]:
+    @property
+    def threat_level_range(self) -> tuple[int, int]:
         return self._threat_level_range
 
-    def get_tactics_vocabulary(self) -> list[str]:
+    @property
+    def tactics_vocabulary(self) -> list[str]:
         return list(self._tactics_vocabulary)
 
-    def get_output_fields(self) -> dict:
+    @property
+    def output_fields(self) -> dict:
         return copy.deepcopy(self._output_fields)
 
-    def get_rules(self) -> list[str]:
+    @property
+    def rules(self) -> list[str]:
         return list(self._rules)

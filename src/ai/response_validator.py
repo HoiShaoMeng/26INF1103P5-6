@@ -24,12 +24,12 @@ class ResponseValidator:
             config (PromptConfig): The configuration object containing validation rules and settings.
         Returns:
             ResponseValidator: An instance of ResponseValidator initialized with the rules derived from the config."""
-        output_fields = config.get_output_fields()
+        output_fields = config.output_fields
         rules = [
             RequireKeysRule(list(output_fields.keys())),
-            ClassificationRule(config.get_allowed_classifications()),
-            ThreatLevelRule(*config.get_threat_level_range()),
-            TacticsDetectedRule(config.get_tactics_vocabulary()),
+            ClassificationRule(config.allowed_classifications),
+            ThreatLevelRule(*config.threat_level_range),
+            TacticsDetectedRule(config.tactics_vocabulary),
         ]
         for field_name, field_info in output_fields.items():
             if field_info["type"] == "list":
