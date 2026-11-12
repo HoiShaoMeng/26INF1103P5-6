@@ -6,6 +6,7 @@ import yaml
 from openrouter import OpenRouter, errors
 from prompt_config import PromptConfig
 from response_validator import ResponseValidator
+from exceptions import SchemaValidationError
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
 import io_manager
@@ -213,7 +214,7 @@ def ai_workflow(system_prompt: str, user_prompt: str, config: dict) -> dict:
     try:
         validator.validate(response_dict)
 
-    except ValueError as e:
+    except SchemaValidationError as e:
         io_manager.display_error("Validation", str(e))
         return build_unavailable_result()
 

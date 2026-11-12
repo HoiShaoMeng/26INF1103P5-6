@@ -10,6 +10,7 @@ from validation_rules import (
     ThreatLevelRule,
     ValidationRule,
 )
+from exceptions import SchemaValidationError
 
 
 class ResponseValidator:
@@ -42,11 +43,11 @@ class ResponseValidator:
         Args:
             response (dict): The response from the AI model to be validated.
         Raises:
-            TypeError: If the response is not a dictionary (JSON object).
-            ValidationError: If any of the validation rules fail."""
+            SchemaValidationError: If the response is not a dictionary (JSON object).
+            """
         
         if not isinstance(response, dict):
-            raise ValueError("Response is not a JSON object") # noqa: TRY004
+            raise SchemaValidationError("Response is not a JSON object")
         
         for rule in self._rules:
             rule.check(response)

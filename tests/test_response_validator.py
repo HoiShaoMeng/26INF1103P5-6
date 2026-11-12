@@ -18,7 +18,7 @@ from validation_rules import (  # type: ignore
 
 # Temporary: the rules raise ValueError until the team's SchemaValidationError is ready.
 # When it is, replace this line with an import of SchemaValidationError
-SchemaValidationError = ValueError
+from exceptions import SchemaValidationError # type: ignore
 
 @pytest.fixture
 def config():

@@ -1,6 +1,7 @@
 """Validation rules for ai responses."""
 
 from abc import ABC, abstractmethod
+from exceptions import SchemaValidationError
 
 
 class ValidationRule(ABC):
@@ -13,7 +14,7 @@ class ValidationRule(ABC):
     # will add validation of the exception error when its ready
 
     def _fail(self, message: str) -> None:
-        raise ValueError(message)
+        raise SchemaValidationError(message)
 
 class RequireKeysRule(ValidationRule):
     """Validation rule that checks if certain keys are present in the response."""
