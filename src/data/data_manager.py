@@ -9,8 +9,9 @@ from report_repository import ReportRepository
 
 
 #loads and saves the report history and the blocklist. it never prints, errors go back to the caller.
-#aggregation: the repository and the blocklist store are passed in, so they exist on their own and can be
-#swapped, e.g. an in-memory repository in tests or a database later, without changing this class.
+#dependency injection: the constructor accepts any ReportRepository, so storage can be swapped
+#(e.g. an in-memory repository in tests or a database later) without changing this class.
+#for_project() builds the default JSON parts that the running app uses.
 class DataManager:
 
     def __init__(self, report_repository: ReportRepository, blocklist_store: JsonBlocklistStore):
