@@ -38,7 +38,7 @@ def test_is_ai_unavailable_true_when_classification_matches():
         "threat_level": 0,
         "tactics_detected": [],
     }
-    check("classification AI_UNAVAILABLE", ai_unavailable_rule.matches(fake_ai_output, False), True)
+    check("classification AI_UNAVAILABLE", ai_unavailable_rule.matches(fake_ai_output, False, ""), True)
 
 # test case: a normal successful AI response should NOT be flagged as unavailable
 def test_is_ai_unavailable_false_for_normal_classification():
@@ -47,12 +47,12 @@ def test_is_ai_unavailable_false_for_normal_classification():
         "threat_level": 92,
         "tactics_detected": ["executive_impersonation"],
     }
-    check("classification phishing", ai_unavailable_rule.matches(fake_ai_output, False), False)
+    check("classification phishing", ai_unavailable_rule.matches(fake_ai_output, False, ""), False)
 
 # test case: anything that is not a dict (e.g. None) must not crash the rule, it just returns False
 def test_is_ai_unavailable_false_for_non_dict():
-    check("None instead of a dict", ai_unavailable_rule.matches(None, False), False)
-    check("plain text instead of a dict", ai_unavailable_rule.matches("AI_UNAVAILABLE", False), False)
+    check("None instead of a dict", ai_unavailable_rule.matches(None, False, ""), False)
+    check("plain text instead of a dict", ai_unavailable_rule.matches("AI_UNAVAILABLE", False, ""), False)
 
 # test case: fail-safe must win even when other fields look critical
 def test_classify_severity_ai_unavailable_returns_needs_review():
@@ -402,6 +402,28 @@ def test_classify_severity_suspicious_evidence_works_with_other_rules():
     )
 
 
+# test case: rule B, 2+ tactics also lift LOG_ONLY to NEEDS_REVIEW, and CRITICAL never goes past CRITICAL
+def test_classify_severity_rule_b_escalates_each_band_once():
+    two_tactics = ["impersonation", "urgency_pressure"]
+    check("threat 10 + 2 tactics", classifier.classify({"threat_level": 10, "tactics_detected": two_tactics}),
+          "NEEDS_REVIEW")
+    check("threat 90 + 2 tactics", classifier.classify({"threat_level": 90, "tactics_detected": two_tactics}),
+          "CRITICAL")
+
+
+# test case: rule B, a single tactic is not enough to escalate
+def test_classify_severity_rule_b_one_tactic_does_not_escalate():
+    check("threat 60 + 1 tactic",
+          classifier.classify({"threat_level": 60, "tactics_detected": ["impersonation"]}), "NEEDS_REVIEW")
+
+
+# test case: rule B, the tactic count needed can be changed when the classifier is created
+def test_classify_severity_rule_b_threshold_is_configurable():
+    strict_classifier = SeverityClassifier(min_tactics=3)
+    check("threat 60 + 2 tactics, needs 3",
+          strict_classifier.classify({"threat_level": 60, "tactics_detected": ["a", "b"]}), "NEEDS_REVIEW")
+
+
 ALL_TESTS = [
     test_is_ai_unavailable_true_when_classification_matches,
     test_is_ai_unavailable_false_for_normal_classification,
@@ -412,6 +434,9 @@ ALL_TESTS = [
     test_classify_severity_log_only_from_threat_level_alone,
     test_classify_severity_rule_a_critical_with_low_threat_level,
     test_classify_severity_rule_b_escalates_needs_review_to_critical,
+    test_classify_severity_rule_b_escalates_each_band_once,
+    test_classify_severity_rule_b_one_tactic_does_not_escalate,
+    test_classify_severity_rule_b_threshold_is_configurable,
     test_classify_severity_rule_c_campaign_forces_critical,
     test_check_campaign_true_for_three_reports_same_sender,
     test_check_campaign_false_for_only_two_reports,
