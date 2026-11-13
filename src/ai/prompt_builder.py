@@ -16,11 +16,11 @@ class PromptBuilder:
         """
         system_prompt = ("You are a phishing detection assistant. "
                         "Respond ONLY with valid JSON matching this schema:{ "
-                        f'"classification": {self._config.get_allowed_classifications()}, '
-                        f'"tactics_detected": {self._config.get_tactics_vocabulary()}, '
-                        f'"threat_level": {list(self._config.get_threat_level_range())},'
-                        f'"output_fields_rules": {self._config.get_output_fields()},'
-                        f'"rule": {self._config.get_rules()},'
+                        f'"classification": {self._config.allowed_classifications}, '
+                        f'"tactics_detected": {self._config.tactics_vocabulary}, '
+                        f'"threat_level": {list(self._config.threat_level_range)},'
+                        f'"output_fields_rules": {self._config.output_fields},'
+                        f'"rule": {self._config.rules},'
                         '}')
         
         return system_prompt

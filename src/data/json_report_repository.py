@@ -2,19 +2,18 @@ import json
 from pathlib import Path
 
 from atomic_json_writer import AtomicJsonWriter
-from report_repository import ReportRepository
 
 
 class ReportStorageError(Exception):
     """Raised when saved report history cannot be loaded."""
 
 
-class JsonReportRepository(ReportRepository):
+class JsonReportRepository:
     """Load and save reports in a JSON file."""
 
     def __init__(self, file_path: Path):
         self._file_path = Path(file_path)
-        #composition: the repository creates and owns its writer, it is never shared or passed in
+        #the safe-write steps live in AtomicJsonWriter so they are not copied into every store that saves JSON
         self._writer = AtomicJsonWriter()
 
     def load_all(self) -> list:

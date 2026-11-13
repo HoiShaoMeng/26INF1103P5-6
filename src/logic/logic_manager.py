@@ -56,8 +56,8 @@ class CampaignDetector:
         return False
 
 #decides the severity for one AI-enriched report by running the severity rules in a fixed order.
-#composition: the classifier creates and owns its rules in __init__, they only exist inside this object.
-#the blocklist is only passed in and referred to (association), it is loaded and saved by the data layer.
+#the rule order lives here in one place, so the order can be read and changed without touching any rule.
+#association: the blocklist is only passed in and referred to, it is loaded and saved by the data layer.
 class SeverityClassifier:
 
     def __init__(self, blocklist=None, critical_threshold: int = 80, needs_review_threshold: int = 50,
@@ -90,7 +90,7 @@ class SeverityClassifier:
         severity = self._first_match(self._band_rules, ai_output, is_campaign, sender_email) or Severity.LOG_ONLY
         return self._escalation.adjust(ai_output, severity)
 
-    #polymorphism: every rule is called through the same apply(), the classifier never checks which rule it is
+    #every rule is called through the same apply(), so a new rule needs no change here
     #private helper: gives the severity of the first rule that matches, or None if none match
     def _first_match(self, rules: list, ai_output: dict, is_campaign: bool, sender_email: str) -> Severity | None:
         for rule in rules:

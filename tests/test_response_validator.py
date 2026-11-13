@@ -8,6 +8,9 @@ import pytest
 # adds the src/ai folder to the path so we can import response_validator.py for testing.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "ai"))
 
+# Temporary: the rules raise ValueError until the team's SchemaValidationError is ready.
+# When it is, replace this line with an import of SchemaValidationError
+from exceptions import SchemaValidationError  # type: ignore
 from prompt_config import PromptConfig  # type: ignore
 from response_validator import ResponseValidator  # type: ignore
 from validation_rules import (  # type: ignore
@@ -16,9 +19,6 @@ from validation_rules import (  # type: ignore
     ValidationRule,
 )
 
-# Temporary: the rules raise ValueError until the team's SchemaValidationError is ready.
-# When it is, replace this line with an import of SchemaValidationError
-SchemaValidationError = ValueError
 
 @pytest.fixture
 def config():
