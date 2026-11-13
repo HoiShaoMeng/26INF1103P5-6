@@ -18,7 +18,8 @@ class Severity(StrEnum):
 
 
 #abstract base class for every severity rule: a rule checks one condition and gives one severity if it matches.
-#the classifier only talks to this base type, so a new rule can be added without changing the classifier.
+#adding a rule means writing a new subclass and adding it to SeverityClassifier's list,
+#no existing rule and no classifier logic has to change.
 class SeverityRule(ABC):
 
     def __init__(self, severity: Severity):
@@ -31,13 +32,13 @@ class SeverityRule(ABC):
         return self._severity
 
     #every subclass must decide when it matches, python will not create a subclass that skips this.
-    #sender_email is optional: only rules that need the sender (e.g. the blocklist) use it, the others ignore it.
+    #every rule gets the same three screening facts and checks only the ones it needs.
     @abstractmethod
-    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str) -> bool:
         pass
 
     #shared behaviour for all rules: gives this rule's severity if it matches, or None if it does not
-    def apply(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> Severity | None:
+    def apply(self, ai_output: dict, is_campaign: bool, sender_email: str) -> Severity | None:
         if self.matches(ai_output, is_campaign, sender_email):
             return self._severity
         return None
@@ -51,7 +52,7 @@ class AiUnavailableRule(SeverityRule):
     def __init__(self):
         super().__init__(Severity.NEEDS_REVIEW)
 
-    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str) -> bool:
         if not isinstance(ai_output, dict):
             return False
         return ai_output.get("classification") == self.UNAVAILABLE_CLASSIFICATION
@@ -63,7 +64,7 @@ class CampaignRule(SeverityRule):
     def __init__(self):
         super().__init__(Severity.CRITICAL)
 
-    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str) -> bool:
         return bool(is_campaign)
 
 
@@ -74,7 +75,7 @@ class DomainMismatchEvidenceRule(SeverityRule):
     def __init__(self):
         super().__init__(Severity.CRITICAL)
 
-    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str) -> bool:
         sender_domain_mismatch = bool(ai_output.get("sender_domain_mismatch"))
         has_suspicious_urls = bool(ai_output.get("suspicious_urls"))
         has_suspicious_attachments = bool(ai_output.get("suspicious_attachments"))
@@ -89,7 +90,7 @@ class BlocklistRule(SeverityRule):
         super().__init__(Severity.CRITICAL)
         self._blocklist = blocklist
 
-    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str) -> bool:
         #no blocklist loaded means nothing is blocked, the other rules still run
         if self._blocklist is None:
             return False
@@ -103,7 +104,7 @@ class SuspiciousEvidenceRule(SeverityRule):
     def __init__(self):
         super().__init__(Severity.NEEDS_REVIEW)
 
-    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str) -> bool:
         has_suspicious_urls = bool(ai_output.get("suspicious_urls"))
         has_suspicious_attachments = bool(ai_output.get("suspicious_attachments"))
         return has_suspicious_urls or has_suspicious_attachments
@@ -122,29 +123,8 @@ class ThreatBandRule(SeverityRule):
     def min_level(self) -> int:
         return self._min_level
 
-    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str = "") -> bool:
+    def matches(self, ai_output: dict, is_campaign: bool, sender_email: str) -> bool:
         threat_level = ai_output.get("threat_level")
         if not isinstance(threat_level, (int, float)):
             threat_level = 0  #missing/bad data should never crash the pipeline
         return threat_level >= self._min_level
-
-
-#rule B: 2+ tactics detected together suggests a deliberate attack, so bump the severity up one tier.
-#not a SeverityRule: it does not pick a severity, it adjusts one that a rule already picked.
-class MultiTacticEscalation:
-
-    def __init__(self, min_tactics: int = 2):
-        self._min_tactics = min_tactics
-
-    #read-only access to how many tactics are needed before escalating
-    @property
-    def min_tactics(self) -> int:
-        return self._min_tactics
-
-    def adjust(self, ai_output: dict, severity: Severity) -> Severity:
-        tactics_detected = ai_output.get("tactics_detected") or []
-        #Severity(...) also accepts a plain string like "NEEDS_REVIEW" and turns it into the enum member
-        severity = Severity(severity)
-        if len(tactics_detected) >= self._min_tactics:
-            return severity.escalate()
-        return severity

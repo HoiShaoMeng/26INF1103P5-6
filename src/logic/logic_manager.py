@@ -5,7 +5,6 @@ from severity_rules import (
     BlocklistRule,
     CampaignRule,
     DomainMismatchEvidenceRule,
-    MultiTacticEscalation,
     Severity,
     SuspiciousEvidenceRule,
     ThreatBandRule,
@@ -75,8 +74,8 @@ class SeverityClassifier:
             ThreatBandRule(needs_review_threshold, Severity.NEEDS_REVIEW),
             SuspiciousEvidenceRule(),      #new safety net: flagged link/attachment is never LOG_ONLY
         ]
-        #rule B: runs last and can bump the band result up one tier
-        self._escalation = MultiTacticEscalation(min_tactics)
+        #rule B: how many tactics at once count as a deliberate attack
+        self._min_tactics = min_tactics
 
     def classify(self, ai_output: dict, is_campaign: bool = False, sender_email: str = "") -> Severity:
         #no AI output at all is treated like a failed AI call, it must never crash or be called safe
@@ -88,9 +87,9 @@ class SeverityClassifier:
             return override
 
         severity = self._first_match(self._band_rules, ai_output, is_campaign, sender_email) or Severity.LOG_ONLY
-        return self._escalation.adjust(ai_output, severity)
+        return self._escalate_for_tactics(ai_output, severity)
 
-    #every rule is called through the same apply(), so a new rule needs no change here
+    #every rule is called through the same apply(), so this loop never changes when a rule is added
     #private helper: gives the severity of the first rule that matches, or None if none match
     def _first_match(self, rules: list, ai_output: dict, is_campaign: bool, sender_email: str) -> Severity | None:
         for rule in rules:
@@ -98,6 +97,15 @@ class SeverityClassifier:
             if severity is not None:
                 return severity
         return None
+
+    #rule B: 2+ tactics detected together suggests a deliberate attack, so bump the band result up one tier.
+    #it is a step of the classifier, not a rule: it adjusts a severity a band already chose instead of choosing one.
+    def _escalate_for_tactics(self, ai_output: dict, severity: Severity) -> Severity:
+        tactics_detected = ai_output.get("tactics_detected") or []
+        if len(tactics_detected) >= self._min_tactics:
+            return Severity(severity).escalate()
+        return Severity(severity)
+
 
 # Generates the recommended action based on the final severity level.
 # Each severity has a fixed action so the IT team knows what to do next.
