@@ -5,27 +5,19 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 for layer in ("io", "ai", "logic", "data", "domain"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
-# src/ai
-from ai_manager import AIManager
-
-# src/data
-from data_manager import DataManager
-from report_history import ReportHistory
-
-# src/logic
-from logic_manager import ActionRecommender, CampaignDetector, SeverityClassifier
-
-# src/domain
-from blocklist import Blocklist
-from screening_report import TriageDecision, ScreeningReport
+from ai_manager import AIManager # src/ai
+from blocklist import Blocklist # src/domain
+from data_manager import DataManager # src/data
+from logic_manager import ActionRecommender, CampaignDetector, SeverityClassifier # src/logic
+from report_history import ReportHistory # src/data
+from screening_report import TriageDecision, ScreeningReport # src/domain
 
 class TriageService: 
-    def __init__(self, ai: AIManager, data: DataManager, action_recommender: ActionRecommender, max_retries: int = 3, on_retry:callable = None):
+    def __init__(self, ai: AIManager, data: DataManager, action_recommender: ActionRecommender, max_retries: int = 3):
         self.__ai = ai
         self.__data = data
         self.__action_recommender = action_recommender
         self.__max_retries = max_retries
-        self.__on_retry = on_retry
 
         self.__campaign_detector = CampaignDetector
         self.__history: ReportHistory | None = self.__data.load_history() 
