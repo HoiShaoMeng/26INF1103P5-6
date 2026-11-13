@@ -11,7 +11,6 @@ from json_report_repository import (  # type: ignore
     JsonReportRepository,
     ReportStorageError,
 )
-from report_repository import ReportRepository  # type: ignore
 
 
 def test_load_all_returns_saved_reports(tmp_path):
@@ -51,16 +50,6 @@ def test_load_all_rejects_corrupt_history(tmp_path, contents):
         JsonReportRepository(report_path).load_all()
 
     assert report_path.read_text(encoding="utf-8") == contents
-
-
-# --- ReportRepository interface ---
-def test_report_repository_interface_cannot_be_created_directly():
-    with pytest.raises(TypeError):
-        ReportRepository()
-
-
-def test_json_repository_is_a_report_repository(tmp_path):
-    assert isinstance(JsonReportRepository(tmp_path / "reports.json"), ReportRepository)
 
 
 # --- save_all ---

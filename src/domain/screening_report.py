@@ -30,8 +30,8 @@ class TriageDecision:
 
 
 #one screened email: the email fields from io, the AI output, the decision from logic, and an optional analyst review.
-#composition: the report creates and owns its Attachment objects, its TriageDecision and its AnalystReview,
-#they only exist as part of this report and are saved and loaded with it.
+#keeping them in one object gives each report an id, and changes only happen through apply_review()
+#and flag_for_recheck(), so the original AI result and the audit trail cannot be edited by accident.
 class ScreeningReport:
 
     #the email fields copied from the io record, in the order they are saved
@@ -47,7 +47,7 @@ class ScreeningReport:
         self._email = {field: email.get(field) for field in self.EMAIL_FIELDS}
         self._email["urls"] = self._email["urls"] or []
         self._email["sender_name"] = self._email["sender_name"] or ""
-        #composition: the report builds its own Attachment objects from the saved {filename, extension} dicts
+        #each saved attachment becomes an Attachment, so its extension is always worked out the same way
         self._attachments = [Attachment.from_dict(item) for item in email.get("attachments") or []
                              if isinstance(item, dict) and isinstance(item.get("filename"), str)]
         #the original AI result is kept as it was, even after a review changes the severity
