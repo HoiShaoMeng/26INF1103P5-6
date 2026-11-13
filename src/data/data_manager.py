@@ -5,16 +5,14 @@ from pathlib import Path
 from json_blocklist_store import JsonBlocklistStore
 from json_report_repository import JsonReportRepository
 from report_history import ReportHistory
-from report_repository import ReportRepository
 
 
 #loads and saves the report history and the blocklist. it never prints, errors go back to the caller.
-#dependency injection: the constructor accepts any ReportRepository, so storage can be swapped
-#(e.g. an in-memory repository in tests or a database later) without changing this class.
-#for_project() builds the default JSON parts that the running app uses.
+#the storage objects are passed into the constructor, so tests can give it a fake storage instead of real files.
+#for_project() builds the normal JSON storage that the running app uses.
 class DataManager:
 
-    def __init__(self, report_repository: ReportRepository, blocklist_store: JsonBlocklistStore):
+    def __init__(self, report_repository: JsonReportRepository, blocklist_store: JsonBlocklistStore):
         self._report_repository = report_repository
         self._blocklist_store = blocklist_store
 

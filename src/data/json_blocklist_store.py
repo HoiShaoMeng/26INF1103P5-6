@@ -13,7 +13,7 @@ class JsonBlocklistStore:
 
     def __init__(self, file_path: Path):
         self._file_path = Path(file_path)
-        #composition: the store creates and owns its writer
+        #same safe-write steps as reports.json, so a failed save never damages the blocklist either
         self._writer = AtomicJsonWriter()
 
     #missing file means nothing is blocked yet, a corrupt file is reported instead of silently unblocking everyone

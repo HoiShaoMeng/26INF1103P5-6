@@ -4,8 +4,8 @@ from screening_report import ScreeningReport
 
 
 #a group of saved ScreeningReport objects that can be filtered and sorted.
-#aggregation: the history only groups reports that exist on their own. a filtered history holds the
-#same report objects as the full one, so a report is never copied, created or destroyed by a history.
+#a filtered history holds the same report objects as the full one (they are never copied),
+#so a review made through a filtered list is saved when the full history is saved.
 class ReportHistory:
 
     def __init__(self, reports: list | None = None):

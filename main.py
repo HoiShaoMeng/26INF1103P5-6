@@ -137,7 +137,7 @@ def review_saved_report():
     if review.blocked_entry:
         flagged = review_service.flag_related(report, history)
 
-    #data: the report object is shared by the filtered list and the full history (aggregation), so saving
+    #data: the filtered list holds the same report objects as the full history, so saving
     #the full history saves the review too
     if not data.save_history(history):
         io_manager.display_error("Data", "the review could not be saved")

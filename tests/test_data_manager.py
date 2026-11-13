@@ -14,12 +14,11 @@ from blocklist import Blocklist  # type: ignore
 from data_manager import DataManager  # type: ignore
 from json_blocklist_store import JsonBlocklistStore  # type: ignore
 from json_report_repository import ReportStorageError  # type: ignore
-from report_repository import ReportRepository  # type: ignore
 from screening_report import ScreeningReport, TriageDecision  # type: ignore
 
 
-# a second ReportRepository that keeps reports in memory: DataManager works with it unchanged (polymorphism / LSP)
-class InMemoryReportRepository(ReportRepository):
+# a fake storage that keeps reports in memory, so DataManager can be tested without real files
+class InMemoryReportRepository:
     def __init__(self, reports=None):
         self.saved = list(reports or [])
 
@@ -69,8 +68,8 @@ def test_blocklist_saved_in_one_run_loads_in_the_next(tmp_path):
     assert loaded.contains_sender("hr@evil.com") is True
 
 
-# --- polymorphism: any ReportRepository works ---
-def test_data_manager_works_with_any_report_repository(tmp_path):
+# --- the storage is passed in, so a fake one can be used ---
+def test_data_manager_works_with_a_fake_storage(tmp_path):
     repository = InMemoryReportRepository()
     data = DataManager(repository, JsonBlocklistStore(tmp_path / "blocklist.json"))
 
