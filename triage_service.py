@@ -8,7 +8,11 @@ for layer in ("io", "ai", "logic", "data", "domain"):
 from ai_manager import AIManager # src/ai
 from blocklist import Blocklist # src/domain
 from data_manager import DataManager # src/data
-from logic_manager import ActionRecommender, CampaignDetector, SeverityClassifier # src/logic
+from logic_manager import (  # src/logic
+    ActionRecommender, 
+    CampaignDetector, 
+    SeverityClassifier
+ )
 from report_history import ReportHistory # src/data
 from screening_report import TriageDecision, ScreeningReport # src/domain
 
