@@ -12,15 +12,48 @@ env:
   IMAGE: ghcr.io/hoishaomeng/26inf1103p5-6
 
 jobs:
+  ci:
+    # Gate 1: lint, the full suite, and the tests inside Docker.
+    uses: ./.github/workflows/ci.yml
+
   publish:
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image and run tests inside the container
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build image once
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: |
+            phishing-triage
+            ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels}}
+
+      # Gate 2: the exact image being released passed the tests.
+      - name: Run tests inside the image
+        run: docker run --rm phishing-triage python -m pytest -q tests/
+
+      # Gate 3: the released app starts, shows its menu, and exits cleanly when input ends
+      # (no API key, no data folder)
+      - name: Smoke test the app in the image
         run: |
-          docker build -t phishing-triage .
-          docker run --rm phishing-triage python -m pytest -q tests/
+          output=$(docker run --rm -i phishing-triage < /dev/null 2>&1) || {
+            echo "The app did not exit cleanly:"; echo "$output"; exit 1; }
+          echo "$output"
+          echo "$output" | grep -q "Phishing Triage Assistant" || {
+            echo "The menu was not shown."; exit 1;}
 
       - uses: docker/login-action@v3
         with:
@@ -28,24 +61,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=raw,value=latest
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-      
-      - name: Save image as tar for submission
-        run: docker save phishing-triage -o phishing-triage.tar
-      
-      - name: Create Github Release with notes and tags
+      - name: Push the tested image
+        run: docker push --all-tags ${{ env.IMAGE }}
+
+      - name: Save the tested image for submission
+        run: docker save phishing-triage | gzip > phishing-triage.tar.gz
+
+      - name: Create the GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create ${{ github.ref_name }} phishing-triage.tar --title "Release ${{ github.ref_name }}" --notes "Release notes for version ${{ github.ref_name }}"
+        run: >
+          gh release create "${{ github.ref_name }}" phishing-triage.tar.gz
+          --title "Release ${{ github.ref_name }}"
+          --generate-notes
+          --verify-tag
+      
