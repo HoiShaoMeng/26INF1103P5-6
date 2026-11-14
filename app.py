@@ -47,11 +47,18 @@ class App:
         severity_choice = self.__io.prompt_severity_choice()
         report_history = self.__data.load_history()
         filtered = report_history.filter_by_severity(severity_choice)
-        self.__io.display_report_list(filtered.reports, severity_choice)
+        print(type(filtered.reports[0]))
+        report_list = []
+        for report in filtered.reports:
+            report_list.append(report.to_dict())
+        self.__io.display_report_list(report_list, severity_choice)
         return
 
     def _review_saved_report(self) -> None:
-        report_history = self.__data.load_history()
-        self.__io.display_report_list(report_history, "all")
+        report_history = self.__data.load_history().sort_by_threat_level().reports
+        report_list = []
+        for report in report_history:
+            report_list.append(report.to_dict())
+        self.__io.display_report_list(report_list, "ALL")
         return
 

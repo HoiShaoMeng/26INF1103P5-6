@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "report_id": "59958df2",
+    "sender_email": "john@gmail.com",
+    "sender_name": "john",
+    "subject": "test",
+    "body": "this is a test email",
+    "urls": [],
+    "attachments": [],
+    "reported_at": "2026-11-14T11:08:08+00:00",
+    "classification": "benign",
+    "threat_level": 0,
+    "tactics_detected": [],
+    "suspicious_urls": [],
+    "suspicious_attachments": [],
+    "sender_domain_mismatch": false,
+    "is_campaign": false,
+    "severity": "LOG_ONLY",
+    "recommended_action": "Archive the report. No further action required.",
+    "review": null,
+    "flagged_by": ""
+  }
+]
