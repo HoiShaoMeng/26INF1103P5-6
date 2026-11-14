@@ -16,6 +16,9 @@ from severity_rules import (
 #the current report counts as 1, so 2 matching previous reports are needed to reach 3.
 class CampaignDetector:
     def check_campaign(self, current_report: dict, previous_reports: list) -> bool:
+        if not previous_reports:
+            return False
+
         # Get the current sender email and normalise it by removing extra spaces and converting it to lowercase. 
         #Example: ATTACKER@fake.com and attacker@fake.com may otherwise be treated as different strings.
         current_sender = current_report["sender_email"].strip().lower()

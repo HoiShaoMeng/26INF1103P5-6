@@ -23,9 +23,9 @@ class App:
         if answer == "1":
             self._screen_one_email()
         elif answer == "2":
-            self.__view_reports_by_severity()
+            self._view_reports_by_severity()
         elif answer == "3":
-            self.__review_saved_reports()
+            self._review_saved_report()
         elif answer == "4":
             pass
 
@@ -33,12 +33,24 @@ class App:
 
     def _screen_one_email(self) -> None:
         email_info = self.__io.prompt_email_fields()
-        report = self.__triage.screen_email(email_info)
+        self.__triage.screen_email(email_info)
+        self.__io.display_screening_result(
+            email_info, 
+            self.__triage.get_ai_result(),
+            self.__triage.get_severity_classification(), 
+            self.__triage.get_recommended_action(), 
+            self.__triage.get_campaign_status()
+            )
         return
 
     def _view_reports_by_severity(self) -> None:
+        severity_choice = self.__io.prompt_severity_choice()
+        report_history =self.__data.load_history()
+        filtered = report_history.filter_by_severity(severity_choice)
+        self.__io.display_report_list(filtered.reports, severity_choice)
         return
 
     def _review_saved_report(self) -> None:
+        
         return
 

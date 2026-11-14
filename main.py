@@ -1,5 +1,6 @@
 import os
 import sys
+from dotenv import load_dotenv
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 for layer in ("io", "ai", "logic", "data", "domain"):
@@ -18,15 +19,16 @@ from app import App
 from open_router_client import OpenRouterClient
 from prompt_config import PromptConfig
 
-api_key=os.getenv("OPENROUTER_API_KEY", "")
+load_dotenv()
+api_key=os.getenv("OPENROUTER_API_KEY")
 
 prompt_config = PromptConfig.load_from_yaml_file()
-client = OpenRouterClient(api_key, prompt_config.model, prompt_config.temperature, 300)
+client = OpenRouterClient(api_key, prompt_config.model, prompt_config.temperature, 30000)
 action_recommender = ActionRecommender()
 data = DataManager.for_project("/")
 ai = AIManager(prompt_config, client)
 io = IOManager()
-triage = TriageService(ai, data, action_recommender)
+triage = TriageService(ai, data, io, action_recommender)
 app = App(triage, data, action_recommender, io)
 
 
