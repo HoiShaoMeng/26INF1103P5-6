@@ -76,6 +76,9 @@ class IOManager:
         """Prints an error from any layer; the caller supplies the problem and what happens next."""
         self._error_view.show(source, problem, next_step)
 
+    def display_exit_message(self) -> None:
+        self._loading.print_message("\nExiting.")
+
     def run_with_loading(self, message: str, task, *args):
         """Runs task(*args) while animated dots show it is busy, then returns the task's result."""
         return self._loading.run(message, task, *args)
