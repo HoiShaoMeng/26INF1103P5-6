@@ -45,12 +45,13 @@ class App:
 
     def _view_reports_by_severity(self) -> None:
         severity_choice = self.__io.prompt_severity_choice()
-        report_history =self.__data.load_history()
+        report_history = self.__data.load_history()
         filtered = report_history.filter_by_severity(severity_choice)
         self.__io.display_report_list(filtered.reports, severity_choice)
         return
 
     def _review_saved_report(self) -> None:
-        
+        report_history = self.__data.load_history()
+        self.__io.display_report_list(report_history, "all")
         return
 
