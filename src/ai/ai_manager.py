@@ -138,7 +138,7 @@ def receive_response(api_response) -> str | None:
         io_manager.display_error("API Response", f"Unexpected API response structure: {api_response}")
         return None
 
-def send_request(system: str, user: str, config: dict) -> any | None:
+def send_request(system: str, user: str, config: dict) -> dict | None:
     """Sends a request to the OpenRouter API through the OpenRouter SDK.
 
     Args:

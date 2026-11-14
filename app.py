@@ -5,7 +5,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 for layer in ("io", "ai", "logic", "data", "domain"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
-from ai_manager import AIManager
 from data_manager import DataManager
 from io_manager import IOManager
 from logic_manager import ActionRecommender
