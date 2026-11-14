@@ -19,5 +19,26 @@
     "recommended_action": "Archive the report. No further action required.",
     "review": null,
     "flagged_by": ""
+  },
+  {
+    "report_id": "48b3f529",
+    "sender_email": "john2@gmail.com",
+    "sender_name": "john the sixth",
+    "subject": "test",
+    "body": "this is a test",
+    "urls": [],
+    "attachments": [],
+    "reported_at": "2026-11-14T14:25:28+00:00",
+    "classification": "benign",
+    "threat_level": 0,
+    "tactics_detected": [],
+    "suspicious_urls": [],
+    "suspicious_attachments": [],
+    "sender_domain_mismatch": false,
+    "is_campaign": false,
+    "severity": "LOG_ONLY",
+    "recommended_action": "Archive the report. No further action required.",
+    "review": null,
+    "flagged_by": ""
   }
 ]

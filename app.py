@@ -8,7 +8,9 @@ for layer in ("io", "ai", "logic", "data", "domain"):
 from data_manager import DataManager
 from io_manager import IOManager
 from logic_manager import ActionRecommender
+
 from triage_service import TriageService
+
 
 class App:
     def __init__(self, triage: TriageService, data: DataManager, action_recommender: ActionRecommender, io: IOManager):
@@ -29,7 +31,6 @@ class App:
         elif answer == "4":
             pass
 
-        return
 
     def _screen_one_email(self) -> None:
         email_info = self.__io.prompt_email_fields()
@@ -41,7 +42,7 @@ class App:
             self.__triage.get_recommended_action(), 
             self.__triage.get_campaign_status()
             )
-        return
+
 
     def _view_reports_by_severity(self) -> None:
         severity_choice = self.__io.prompt_severity_choice()
@@ -52,7 +53,7 @@ class App:
         for report in filtered.reports:
             report_list.append(report.to_dict())
         self.__io.display_report_list(report_list, severity_choice)
-        return
+
 
     def _review_saved_report(self) -> None:
         report_history = self.__data.load_history().sort_by_threat_level().reports
@@ -60,5 +61,5 @@ class App:
         for report in report_history:
             report_list.append(report.to_dict())
         self.__io.display_report_list(report_list, "ALL")
-        return
+
 

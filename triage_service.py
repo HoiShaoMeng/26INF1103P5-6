@@ -6,14 +6,13 @@ for layer in ("io", "ai", "logic", "data", "domain"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
 from ai_manager import AIManager  # src/ai
-from blocklist import Blocklist  # src/domain
 from data_manager import DataManager  # src/data
+from io_manager import IOManager
 from logic_manager import (  # src/logic
     ActionRecommender,
     CampaignDetector,
     SeverityClassifier,
 )
-from io_manager import IOManager
 from report_history import ReportHistory  # src/data
 from screening_report import ScreeningReport, TriageDecision  # src/domain
 
@@ -55,7 +54,10 @@ class TriageService:
         return ai_outcome
 
     def _decide(self, email:dict, ai_output:dict) -> TriageDecision:
-        campaign_status = self.__campaign_detector.check_campaign(ai_output, self.__history.reports)
+        report_list = []
+        for report in self.__history.reports:
+            report_list.append(report.to_dict())
+        campaign_status = self.__campaign_detector.check_campaign(email | ai_output, report_list)
         self.__campaign_status = campaign_status
 
         severity_classification = self.__severity_classifier.classify(ai_output,campaign_status)
