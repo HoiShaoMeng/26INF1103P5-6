@@ -21,15 +21,20 @@ class App:
         # self.__actions : dict<str, Callable
 
     def run(self) -> None:
-        answer = self.__io.prompt_menu_choice()
-        if answer == "1":
-            self._screen_one_email()
-        elif answer == "2":
-            self._view_reports_by_severity()
-        elif answer == "3":
-            self._review_saved_report()
-        elif answer == "4":
-            pass
+        try:
+            while True:
+                answer = self.__io.prompt_menu_choice()
+                if answer == "1":
+                    self._screen_one_email()
+                elif answer == "2":
+                    self._view_reports_by_severity()
+                elif answer == "3":
+                    self._review_saved_report()
+                elif answer == "4":
+                    self.__io.display_exit_message()
+                    sys.exit()
+        except (KeyboardInterrupt, EOFError):
+            self.__io.display_exit_message()
 
 
     def _screen_one_email(self) -> None:
@@ -48,7 +53,6 @@ class App:
         severity_choice = self.__io.prompt_severity_choice()
         report_history = self.__data.load_history()
         filtered = report_history.filter_by_severity(severity_choice)
-        print(type(filtered.reports[0]))
         report_list = []
         for report in filtered.reports:
             report_list.append(report.to_dict())
