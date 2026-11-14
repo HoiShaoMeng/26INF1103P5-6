@@ -138,7 +138,7 @@ def receive_response(api_response) -> str | None:
         io_manager.display_error("API Response", f"Unexpected API response structure: {api_response}")
         return None
 
-def send_request(system: str, user: str, config: dict) -> any | None:
+def send_request(system: str, user: str, config: dict) -> dict | None:
     """Sends a request to the OpenRouter API through the OpenRouter SDK.
 
     Args:
@@ -232,8 +232,8 @@ class AIManager:
     def assess(self, email: dict) -> dict:
         """Runs one AI assessment of the email"""
         content = self._client.send_request(self._builder.build_system_prompt(), self._builder.build_user_prompt(email))
-
-        response = self._parse(content)
+        extracted_content = self._client.extract_content(content)
+        response = self._parse(extracted_content)
         self._validator.validate(response)
         return response
 
