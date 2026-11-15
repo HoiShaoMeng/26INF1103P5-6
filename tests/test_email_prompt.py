@@ -66,8 +66,14 @@ def test_empty_body_is_asked_again():
     assert errors == ["Body text is required."]
 
 
-def test_body_ends_on_end_in_any_case():
-    lines = VALID_EMAIL[:3] + ["Hello", "end"] + VALID_EMAIL[7:]
+def test_lowercase_end_stays_in_the_body():
+    lines = VALID_EMAIL[:3] + ["Hello", "end", "The End", "END"] + VALID_EMAIL[7:]
+    prompt, _ = make_prompt(lines)
+    assert prompt.ask()["body"] == "Hello\nend\nThe End"
+
+
+def test_end_with_spaces_around_it_still_finishes_the_body():
+    lines = VALID_EMAIL[:3] + ["Hello", "  END  "] + VALID_EMAIL[7:]
     prompt, _ = make_prompt(lines)
     assert prompt.ask()["body"] == "Hello"
 
