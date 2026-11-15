@@ -1,12 +1,8 @@
-import os
-import sys
+
 
 from ai_client import ai_client
-from exceptions import AIConnectionError, AIError
+from exceptions import AIConnectionError
 from openrouter import OpenRouter, errors
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "io"))
-import io_manager
 
 
 class OpenRouterClient(ai_client):
@@ -17,7 +13,7 @@ class OpenRouterClient(ai_client):
         self.__timeout_ms = timeout_ms
 
 
-    def send_request(self, system_prompt:str, user_prompt:str) -> str | None:
+    def send_request(self, system_prompt:str, user_prompt:str) -> str:
         with OpenRouter(
                 api_key=self.__api_key,
             ) as open_router:
@@ -31,9 +27,7 @@ class OpenRouterClient(ai_client):
                         temperature=self.__temperature,
                         timeout_ms=self.__timeout_ms,  # 30 seconds
                     )
-                    error = getattr(response, "error", None)
-                    if error:
-                        raise AIConnectionError(f"Openrouter returned an error: {error}")
+                    
         
                 except errors.TooManyRequestsResponseError as e:
                     raise AIConnectionError(f"Rate limit hit (429): {e}")
@@ -43,21 +37,16 @@ class OpenRouterClient(ai_client):
                 
                 except errors.InternalServerResponseError as e:
                     raise AIConnectionError(f"Openrouter or upstream server error (500): {e}")
-                
-                except AIError as e:
-                     io_manager.display_error("AI request error: ", e)
 
-                except Exception as e: # noqa: BLE001 keep the batch running if OpenRouter returns an unexpected payload or transient failure
-                    # OpenRouter is an external service and may raise shapes we did not anticipate
-                    # (e.g. malformed JSON, unexpected response objects, or upstream runtime errors).
-                    # We do not want one failed AI call to crash the whole workflow; the caller
-                    # handles None by returning a safe "AI unavailable" fallback.
-                    io_manager.display_error("AI request error: ",f"{e}")
-                    return None
-        return response
+                except Exception as e: # OpenRouter is external and may fail in ways we did not anticipate
+                    raise AIConnectionError("AI request failed: ",f"{e}") from e
+        error = getattr(response, "error", None)
+        if error:
+            raise AIConnectionError(f"Openrouter returned an error: {error}")
+        return self._extract_content(response)
 
-
-    def extract_content(self, response:str) -> str | None:
+    @staticmethod
+    def _extract_content(response) -> str:
         try:
                 response = response.model_dump()
                 message = response["choices"][0]["message"]
@@ -65,5 +54,4 @@ class OpenRouterClient(ai_client):
                 return content_body
         
         except (KeyError, IndexError, TypeError, AttributeError):
-            io_manager.display_error("API Response", f"Unexpected API response structure: {response}")
-            return None
+            raise  AIConnectionError(f"Unexpected API response structure: {response}")
