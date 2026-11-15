@@ -232,8 +232,7 @@ class AIManager:
     def assess(self, email: dict) -> dict:
         """Runs one AI assessment of the email"""
         content = self._client.send_request(self._builder.build_system_prompt(), self._builder.build_user_prompt(email))
-        extracted_content = self._client.extract_content(content)
-        response = self._parse(extracted_content)
+        response = self._parse(content)
         self._validator.validate(response)
         return response
 
