@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from attachment import Attachment
 
-# A blank line can't end the body, because real emails have blank lines between paragraphs.
+# Only the capital END counts.
 BODY_END_MARKER = "END"
 
 
@@ -72,7 +72,7 @@ class EmailPrompt:
             lines = []
             while True:
                 line = self._read_raw("")
-                if line.strip().upper() == BODY_END_MARKER:
+                if line.strip() == BODY_END_MARKER:
                     break
                 lines.append(line.rstrip())
             body = "\n".join(lines).strip()
