@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from typing import ClassVar
 
+from dashboard_view import DashboardView
 from email_prompt import EmailPrompt
 from error_view import ErrorView
 from input_validator import InputValidator
@@ -34,6 +35,7 @@ class IOManager:
         self._validator = InputValidator()
         self._result_view = ResultView(print_line)
         self._report_list_view = ReportListView(print_line)
+        self._dashboard_view = DashboardView(print_line)
 
     # --- Input ---
     def read_line(self, prompt: str) -> str:
@@ -71,6 +73,10 @@ class IOManager:
     def display_report_list(self, reports: list[dict], severity: str) -> None:
         """Prints the saved reports that match the chosen severity."""
         self._report_list_view.show(reports, severity)
+
+    def display_dashboard(self, results: list) -> None:
+        """Prints the dashboard: one section per panel result, in the order given."""
+        self._dashboard_view.show(results)
 
     def display_error(self, source: str, problem, next_step: str = "") -> None:
         """Prints an error from any layer; the caller supplies the problem and what happens next."""
