@@ -10,11 +10,10 @@ SINGAPORE_TIME = timezone(timedelta(hours=8), "SGT")
 
 
 class TrendPanel(DashboardPanel):
-    """Counts the reports per day for the last 7 days in Singapore time, with a simple bar for each day."""
+    """Counts the reports per day for the last 7 days in Singapore time."""
 
     TITLE = "Last 7 days"
     DAYS = 7
-    MAX_BAR = 20
 
     def __init__(self, clock: Callable[[], datetime] | None = None):
         # Passed in so tests can fix "today" instead of depending on the real date.
@@ -29,10 +28,7 @@ class TrendPanel(DashboardPanel):
             if day in counts:
                 counts[day] += 1
 
-        # The bars are shrunk only when a busy day would make them too long to fit on the screen.
-        busiest = max(counts.values())
-        scale = self.MAX_BAR / busiest if busiest > self.MAX_BAR else 1
-        rows = [(day.isoformat(), f"{count}  {'#' * round(count * scale)}".rstrip()) for day, count in counts.items()]
+        rows = [(day.isoformat(), count) for day, count in counts.items()]
         rows.append(("total", sum(counts.values())))
         return rows
 
