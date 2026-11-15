@@ -18,7 +18,8 @@ class IOManager:
 
     MENU_TITLE = "Phishing Triage Assistant"
     MENU_OPTIONS: ClassVar[dict] = {"1": "Screen a new email", "2": "View saved reports by severity",
-                                    "3": "Review a saved report", "4": "Exit"}
+                                    "3": "Review a saved report", "4": "View Dashboard",
+                                    "5": "Exit"}
     # Must match the severities logic_manager returns and data_manager saves.
     SEVERITY_OPTIONS: ClassVar[dict] = {"1": "CRITICAL", "2": "NEEDS_REVIEW", "3": "LOG_ONLY"}
     # reported_at is left out so the same email always gives the AI the same input.

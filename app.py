@@ -5,6 +5,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 for layer in ("io", "ai", "logic", "data", "domain"):
     sys.path.insert(0, os.path.join(BASE_DIR, "src", layer))
 
+from dashboard import Dashboard
 from data_manager import DataManager
 from io_manager import IOManager
 from logic_manager import ActionRecommender
@@ -31,6 +32,8 @@ class App:
                 elif answer == "3":
                     self._review_saved_report()
                 elif answer == "4":
+                    self._view_dashboard()
+                elif answer == "5":
                     self.__io.display_exit_message()
                     sys.exit()
         except (KeyboardInterrupt, EOFError):
@@ -67,3 +70,11 @@ class App:
         self.__io.display_report_list(report_list, "ALL")
 
 
+    def _view_dashboard(self) -> None:
+        report_history = self.__data.load_history().sort_by_threat_level().reports
+        report_list = []
+        for report in report_history:
+            report_list.append(report.to_dict())
+        new_dashboard = Dashboard.standard()
+        dashboard_list = new_dashboard.build(report_list)
+        self.__io.display_dashboard(dashboard_list)
