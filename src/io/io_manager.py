@@ -27,11 +27,8 @@ class IOManager:
 
     def __init__(self, read_input: Callable[[str], str] = input, print_line: Callable[[str], None] = print,
                  output=None):
-        # Passed in so tests can fake the typing and collect the printed lines.
         self._read_input = read_input
-        # Composition: the manager creates and owns these objects; they exist only to serve this manager.
         self._loading = LoadingIndicator(output=output)
-        # Errors print through the indicator, so the loading dots are cleared first and each message gets its own line.
         self._error_view = ErrorView(self._loading.print_message)
         self._validator = InputValidator()
         self._result_view = ResultView(print_line)
@@ -89,20 +86,3 @@ class IOManager:
     def run_with_loading(self, message: str, task, *args):
         """Runs task(*args) while animated dots show it is busy, then returns the task's result."""
         return self._loading.run(message, task, *args)
-
-
-# Temporary bridge: main.py and the AI files still call these module names. They all use one shared
-# IOManager, and can be deleted once those files create and use an IOManager object themselves.
-_shared = IOManager()
-MENU_OPTIONS = IOManager.MENU_OPTIONS
-SEVERITY_OPTIONS = IOManager.SEVERITY_OPTIONS
-read_line = _shared.read_line
-show_error = _shared.show_error
-prompt_menu_choice = _shared.prompt_menu_choice
-prompt_severity_choice = _shared.prompt_severity_choice
-prompt_email_fields = _shared.prompt_email_fields
-get_ai_input = IOManager.get_ai_input
-display_screening_result = _shared.display_screening_result
-display_report_list = _shared.display_report_list
-display_error = _shared.display_error
-run_with_loading = _shared.run_with_loading

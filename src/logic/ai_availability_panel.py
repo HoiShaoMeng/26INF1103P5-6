@@ -44,7 +44,6 @@ class AiAvailabilityPanel(DashboardPanel):
                 moment = datetime.fromisoformat(report.get("reported_at"))
             except (TypeError, ValueError):
                 continue
-            # A time saved without a zone is treated as Singapore time, the same way the report list shows it.
             times.append(moment if moment.tzinfo else moment.replace(tzinfo=SINGAPORE_TIME))
         if not times:
             return "none" if not failed else "unknown"

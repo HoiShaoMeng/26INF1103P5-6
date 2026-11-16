@@ -13,17 +13,15 @@ class CampaignPanel(DashboardPanel):
     """Lists the sender domains with 3 or more reports in the last 24 hours, busiest first."""
 
     TITLE = "Active campaigns"
-    # The same rule the campaign check uses: 3+ reports from one sender or domain within 24 hours.
+    # The same rule: 3+ reports from one sender or domain within 24 hours.
     MIN_REPORTS = 3
     WINDOW = timedelta(hours=24)
 
     def __init__(self, clock: Callable[[], datetime] | None = None):
-        # Passed in so tests can fix "now" instead of depending on the real time.
         self._clock = clock or (lambda: datetime.now(UTC))
 
     def compute_rows(self, reports: list[dict]) -> list[tuple[str, object]]:
         now = self._clock()
-        # domain -> times of its reports in the last 24 hours
         recent: dict[str, list[datetime]] = {}
         for report in reports:
             domain = self._domain(report.get("sender_email"))
