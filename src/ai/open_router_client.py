@@ -55,3 +55,7 @@ class OpenRouterClient(ai_client):
         
         except (KeyError, IndexError, TypeError, AttributeError):
             raise  AIConnectionError(f"Unexpected API response structure: {response}")
+
+    @property
+    def model(self):
+        return self.__model

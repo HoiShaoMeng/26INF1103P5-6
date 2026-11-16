@@ -53,3 +53,7 @@ class AIManager:
             return json.loads(content)
         except (json.JSONDecodeError, TypeError) as e:
             raise MalformedResponseError(f"AI reply is not valid JSON: {content!r}") from e
+
+    @property
+    def client(self):
+        return self._client

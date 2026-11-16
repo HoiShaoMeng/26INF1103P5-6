@@ -112,3 +112,6 @@ class TriageService:
     #True if the last screened report was saved to reports.json
     def was_saved(self) -> bool:
         return self.__saved
+
+    def get_ai_class(self):
+        return self.__ai

@@ -131,5 +131,6 @@ class App:
         except ReportStorageError as error:
             self.__io.display_error("Data", str(error))
             return
-        dashboard = Dashboard.standard()
+        model_type = self.__triage.get_ai_class().client.model
+        dashboard = Dashboard.standard(model_type)
         self.__io.display_dashboard(dashboard.build(history.to_dicts()))
