@@ -27,11 +27,8 @@ class IOManager:
 
     def __init__(self, read_input: Callable[[str], str] = input, print_line: Callable[[str], None] = print,
                  output=None):
-        # Passed in so tests can fake the typing and collect the printed lines.
         self._read_input = read_input
-        # Composition: the manager creates and owns these objects; they exist only to serve this manager.
         self._loading = LoadingIndicator(output=output)
-        # Errors print through the indicator, so the loading dots are cleared first and each message gets its own line.
         self._error_view = ErrorView(self._loading.print_message)
         self._validator = InputValidator()
         self._result_view = ResultView(print_line)

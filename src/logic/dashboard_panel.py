@@ -8,7 +8,6 @@ class PanelResult:
 
     def __init__(self, title: str, rows: list[tuple[str, object]], note: str = ""):
         self._title = title
-        # Stored as a tuple so the rows can't be changed after the panel has worked them out.
         self._rows = tuple(rows)
         self._note = note
 
@@ -36,7 +35,7 @@ class DashboardPanel(ABC):
     EMPTY_NOTE = "No reports saved yet."
 
     def build(self, reports: list[dict]) -> PanelResult:
-        """Works out the panel for the saved reports. The same steps run for every panel; only the rows differ."""
+        """Works out the panel for the saved reports."""
         if not reports:
             return PanelResult(self.TITLE, [], self.EMPTY_NOTE)
         return PanelResult(self.TITLE, self.compute_rows(reports))

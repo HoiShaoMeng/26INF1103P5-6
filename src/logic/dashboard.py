@@ -12,7 +12,7 @@ from trend_panel import TrendPanel
 
 
 class Dashboard:
-    """Holds a list of panels and builds them all from the same saved reports, in order."""
+    """Holds a list of panels and builds them all from the same saved report in order."""
 
     def __init__(self, panels: list[DashboardPanel]):
         self._panels = list(panels)
