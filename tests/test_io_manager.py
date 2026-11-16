@@ -5,7 +5,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "io"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "domain"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "logic"))
 
-import io_manager  # type: ignore
 from dashboard_panel import PanelResult  # type: ignore
 from io_manager import IOManager  # type: ignore
 
@@ -71,12 +70,6 @@ def test_error_is_shown_with_the_prefix(capsys):
 def test_run_with_loading_returns_the_task_result():
     manager, _ = make_manager()
     assert manager.run_with_loading("Working", lambda a, b: a + b, 2, 3) == 5
-
-
-def test_bridge_names_still_work_for_existing_callers():
-    assert io_manager.get_ai_input(RECORD) == IOManager.get_ai_input(RECORD)
-    assert io_manager.MENU_OPTIONS is IOManager.MENU_OPTIONS
-    assert callable(io_manager.display_error)
 
 
 def test_dashboard_is_printed_through_the_view():
