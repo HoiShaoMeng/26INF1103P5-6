@@ -20,11 +20,12 @@ from triage_service import TriageService
 #runs the main menu and sends each choice to the right part of the app.
 #association: every object it uses is created in main.py and passed in, the app does not own them.
 class App:
-    def __init__(self, triage: TriageService, data: DataManager, action_recommender: ActionRecommender, io: IOManager):
+    def __init__(self, triage: TriageService, data: DataManager, action_recommender: ActionRecommender, io: IOManager, model_name: str | None = None):
         self.__triage = triage
         self.__data = data
         self.__action_recommender = action_recommender
         self.__io = io
+        self.__model_name = model_name
 
     def run(self) -> None:
         try:
@@ -131,6 +132,5 @@ class App:
         except ReportStorageError as error:
             self.__io.display_error("Data", str(error))
             return
-        model_type = self.__triage.get_ai_class().client.model
-        dashboard = Dashboard.standard(model_type)
+        dashboard = Dashboard.standard(self.__model_name)
         self.__io.display_dashboard(dashboard.build(history.to_dicts()))
