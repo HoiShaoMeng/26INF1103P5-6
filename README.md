@@ -25,6 +25,7 @@ the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 
 ## Table of Contents
 
+- [What Changed in Part 2](#what-changed-in-part-2)
 - [Features](#features)
 - [Usage](#usage)
 - [Architecture](#architecture)
@@ -464,17 +465,17 @@ Runs on every push and pull request to main:
 | docker | Builds the image and runs the test suite **inside the container** |
 | commit-messages | Pull requests only: checks each commit follows Conventional Commits, e.g. feat(io): add display_dashboard to IOManager |
 
-### Continuous Deployment (advanced feature): .github/workflows/release.yml extended from Part 1
+### Continuous Deployment (advanced feature, extended from Part 1): .github/workflows/release.yml 
 
 Pushing a version tag releases the app automatically:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v2.1.0
+git push origin v2.1.0
 ```
 
 1. **Gate 1:** runs the whole CI workflow (lint, tests, tests in Docker).
-2. Builds the image once, tagged with the version (e.g. 1.1.0 and 1.1).
+2. Builds the image once, tagged with the version (e.g. 2.0.0 and 2.1).
 3. **Gate 2:** runs the test suite inside that exact image.
 4. **Gate 3:** smoke test: starts the app with no API key and no data, checks the menu appears and the app exits cleanly.
 5. Pushes the tested image to ghcr.io/hoishaomeng/26inf1103p5-6.
