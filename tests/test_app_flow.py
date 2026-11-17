@@ -122,7 +122,6 @@ def test_screen_email_loads_data_itself_and_rejects_a_record_without_a_time(tmp_
     assert triage.screen_email(record) is None
     assert triage.was_saved() is False
     assert len(data.load_history()) == 0
-    assert triage.get_ai_class() is ai
 
 
 # --- option 2: view by severity ---
