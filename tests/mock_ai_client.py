@@ -6,10 +6,10 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "ai"))
 
 
-from ai_client import ai_client  # type: ignore
+from ai_client import AIClient  # type: ignore
 
 
-class MockAIClient(ai_client):
+class MockAIClient(AIClient):
     """Stands in for OpenRouterClient in tests, so no API key or network is needed.
 
     Each call to send_request returns the next reply in the list. A reply that is an

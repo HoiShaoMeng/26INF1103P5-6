@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "ai"))
 
-from ai_client import ai_client  # type: ignore
+from ai_client import AIClient  # type: ignore
 from exceptions import AIConnectionError, SchemaValidationError  # type: ignore
 from mock_ai_client import MockAIClient
 from prompt_builder import PromptBuilder  # type: ignore
@@ -36,7 +36,7 @@ EMAIL = {
 # -- the mock itself --
 
 def test_mock_is_an_ai_client():
-    assert isinstance(MockAIClient([VALID_REPLY]), ai_client)
+    assert isinstance(MockAIClient([VALID_REPLY]), AIClient)
 
 
 def test_mock_returns_its_reply():

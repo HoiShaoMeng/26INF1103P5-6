@@ -1,11 +1,11 @@
 
 
-from ai_client import ai_client
+from ai_client import AIClient
 from exceptions import AIConnectionError
 from openrouter import OpenRouter, errors
 
 
-class OpenRouterClient(ai_client):
+class OpenRouterClient(AIClient):
     def __init__(self, api_key, model, temperature, timeout_ms):
         self.__api_key = api_key
         self.__model = model
