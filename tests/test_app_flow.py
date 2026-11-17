@@ -71,7 +71,7 @@ def run_app(tmp_path, answers, ai_replies=(), data=None):
     io = IOManager(read_input=lambda prompt="": next(typed))
     recommender = ActionRecommender()
     triage = TriageService(ai, data, io, recommender)
-    App(triage, data, recommender, io, PromptConfig.load_from_yaml_file()).run()
+    App(triage, data, recommender, io, "test-model:free").run()
     return data, ai, triage
 
 
