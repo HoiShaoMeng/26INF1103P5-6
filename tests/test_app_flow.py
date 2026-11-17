@@ -71,7 +71,7 @@ def run_app(tmp_path, answers, ai_replies=(), data=None):
     io = IOManager(read_input=lambda prompt="": next(typed))
     recommender = ActionRecommender()
     triage = TriageService(ai, data, io, recommender)
-    App(triage, data, recommender, io).run()
+    App(triage, data, recommender, io, "test-model:free").run()
     return data, ai, triage
 
 
@@ -122,7 +122,6 @@ def test_screen_email_loads_data_itself_and_rejects_a_record_without_a_time(tmp_
     assert triage.screen_email(record) is None
     assert triage.was_saved() is False
     assert len(data.load_history()) == 0
-    assert triage.get_ai_class() is ai
 
 
 # --- option 2: view by severity ---

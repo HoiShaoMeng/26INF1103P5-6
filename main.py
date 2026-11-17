@@ -29,7 +29,7 @@ data = DataManager.for_project(BASE_DIR)
 ai = AIManager(prompt_config, client)
 io = IOManager()
 triage = TriageService(ai, data, io, action_recommender)
-app = App(triage, data, action_recommender, io)
+app = App(triage, data, action_recommender, io, prompt_config.model)
 
 if __name__ == "__main__":
     app.run()
