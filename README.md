@@ -11,6 +11,16 @@ This command-line assistant uses an AI model to assess each reported email, appl
 The full problem statement, including the internship experience that motivated
 the project, is in [ProjectInitialDetails.md](ProjectInitialDetails.md).
 
+| | Part 1 | Part 2 |
+|---|---|---|
+| Design | Procedural functions in four manager files | Object-oriented: ~60 classes, abstract base classes, inheritance, composition and polymorphism, four managers kept |
+| Severity rules | One classify_severity() function with a chain of if statements | One SeverityRule subclass per rule, run in order by SeverityClassifier |
+| New feature | – | Analyst review and blocklist: confirm or reject a report, block confirmed attackers, re-check reports the AI missed |
+| Extra feature | – | Dashboard: severity breakdown, 7-day trend, active campaigns, top tactics, AI availability |
+| Tests | 21 tests, logic manager only | Over 300 tests across every layer, all without a live AI |
+| CI | Lint, tests, tests inside Docker, commit-message check | Same checks, now also reused as the first gate of every release |
+| Continuous Deployment | Tag → build, test in Docker, push to GHCR, create a release | Gated release: full CI first, then tests on the exact image, a smoke test of the app, version tags and generated notes. Nothing is published if any gate fails | 
+
 ## Table of Contents
 
 - [Features](#features)
