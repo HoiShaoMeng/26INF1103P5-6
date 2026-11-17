@@ -39,7 +39,7 @@ class OpenRouterClient(ai_client):
                     raise AIConnectionError(f"Openrouter or upstream server error (500): {e}")
 
                 except Exception as e: # OpenRouter is external and may fail in ways we did not anticipate
-                    raise AIConnectionError("AI request failed: ",f"{e}") from e
+                    raise AIConnectionError(f"AI request failed: {e}") from e
         error = getattr(response, "error", None)
         if error:
             raise AIConnectionError(f"Openrouter returned an error: {error}")
