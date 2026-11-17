@@ -1,11 +1,11 @@
 
 
-from ai_client import ai_client
+from ai_client import AIClient
 from exceptions import AIConnectionError
 from openrouter import OpenRouter, errors
 
 
-class OpenRouterClient(ai_client):
+class OpenRouterClient(AIClient):
     def __init__(self, api_key, model, temperature, timeout_ms):
         self.__api_key = api_key
         self.__model = model
@@ -39,7 +39,7 @@ class OpenRouterClient(ai_client):
                     raise AIConnectionError(f"Openrouter or upstream server error (500): {e}")
 
                 except Exception as e: # OpenRouter is external and may fail in ways we did not anticipate
-                    raise AIConnectionError("AI request failed: ",f"{e}") from e
+                    raise AIConnectionError(f"AI request failed: {e}") from e
         error = getattr(response, "error", None)
         if error:
             raise AIConnectionError(f"Openrouter returned an error: {error}")

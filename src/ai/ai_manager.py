@@ -1,7 +1,7 @@
 """ai_manager: runs one AI assessment of a reported email"""
 import json
 
-from ai_client import ai_client
+from ai_client import AIClient
 from exceptions import MalformedResponseError
 from prompt_builder import PromptBuilder
 from prompt_config import PromptConfig
@@ -11,7 +11,7 @@ AI_UNAVAILABLE = "AI_UNAVAILABLE"
 
 class AIManager:
     """Runs one AI assessment: builds the prompts, asks the client, parses and validates the reply"""
-    def __init__(self, config: PromptConfig, client: ai_client):
+    def __init__(self, config: PromptConfig, client: AIClient):
         self._client = client
         self._builder = PromptBuilder(config)
         self._validator = ResponseValidator.from_config(config)
